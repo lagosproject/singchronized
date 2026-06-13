@@ -10,17 +10,86 @@ Sing karaoke with your own music library. SingChronized plays the **original voc
 ---
 
 ## 📋 Table of Contents
-- [About the Project](#-about-the-project)
-- [How it Works](#-how-it-works)
-- [Prerequisites](#-prerequisites)
-- [Installation & Setup](#-installation--setup)
-- [Configuration](#-configuration)
-- [Running the App](#-running-the-app)
-- [User Guide](#-user-guide)
-- [Desktop Bundles (Tauri)](#-desktop-bundles-tauri)
-- [Keyboard Shortcuts](#-keyboard-shortcuts)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [🎵 User Guide](#-user-guide)
+- [⌨️ Keyboard Shortcuts](#-keyboard-shortcuts)
+- [🏗 Technical Architecture](#-technical-architecture)
+- [📖 About the Project](#-about-the-project)
+- [🛠 Prerequisites](#-prerequisites)
+- [🚀 Installation & Setup](#-installation--setup)
+- [⚙️ Configuration](#-configuration)
+- [▶️ Running the App](#-running-the-app)
+- [📦 Desktop Bundles (Tauri)](#-desktop-bundles-tauri)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+
+---
+
+## 🎵 User Guide
+
+### Step 1 — Set up your audio outputs
+Go to **Settings → Audio Routing** and pick two output devices:
+- **Singer output** — your headphones. You'll hear the full song with vocals so you can follow along.
+- **Audience output** — the speakers the crowd listens to. They'll only hear the instrumental.
+
+Hit **Test** next to each device to confirm sound comes out of the right place. If you only have one output device, the app plays the instrumental on the one output, just like a regular karaoke player.
+
+> **Linux tip:** Bluetooth, USB, or HDMI audio are the easiest way to get two separate outputs. The built-in jack and speakers share one audio path on most laptops and can't be split.
+
+---
+
+### Step 2 — Import your music
+Open the **Studio** tab and click **Import Song**.
+Fill in the title and artist, then select your audio file (MP3, FLAC, WAV, OGG, and most common formats work). You can also drag a cover image into the thumbnail field.
+
+---
+
+### Step 3 — Process with AI
+Each imported song shows a pipeline card with two actions:
+
+| Button | What it does | Time |
+|---|---|---|
+| **Split Audio** | Runs Demucs to separate vocals and instrumental | 1–5 min per song |
+| **Auto Lyrics** | Runs Whisper to transcribe time-synced lyrics | 30 s–3 min per song |
+
+A progress bar appears while the AI works. The first run of each AI model downloads it (~1 GB for Demucs, ~150 MB–1.5 GB for Whisper).
+> **Note:** *Auto Lyrics* requires *Split Audio* to finish first for higher transcription accuracy.
+
+---
+
+### Step 4 — Edit lyrics (optional)
+Once lyrics are generated, click **Edit Lyrics** on any song to open the lyrics editor. The lyrics are stored in standard LRC format (`[MM:SS.xx] lyrics text`). You can fix transcription errors or adjust timing here.
+
+---
+
+### Step 5 — Play and sing
+Click the play button on any song from the **Home** screen or the **Studio** tab. The lyrics scroll on screen in sync with the music.
+
+- Press **Space** to pause/resume.
+- Use the seek bar to jump to any point.
+- Toggle **Fullscreen Lyrics** for the big-screen karaoke view.
+- Adjust **Singer** and **Audience** volume sliders independently in the player bar.
+
+---
+
+### Playlists
+In the **Playlists** tab, you can create ordered setlists. Songs in a playlist play back-to-back automatically, with a brief countdown between tracks so the next singer has time to step up.
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+| Key | Action |
+|---|---|
+| `Space` | Play / Pause |
+| `←` / `→` | Seek back / forward 5 seconds |
+| `F` | Toggle fullscreen lyrics |
+
+---
+
+## 🏗 Technical Architecture
+
+For an in-depth reference containing architecture details, stack diagrams, API structures, data model references, details on the audio routing engine, local AI integration details, and packaging guidelines:
+👉 **See [ARCHITECTURE.md](ARCHITECTURE.md)**
 
 ---
 
@@ -124,58 +193,6 @@ To run frontend and backend developers' hot-reload servers separately:
 
 ---
 
-## 🎵 User Guide
-
-### Step 1 — Set up your audio outputs
-Go to **Settings → Audio Routing** and pick two output devices:
-- **Singer output** — your headphones. You'll hear the full song with vocals so you can follow along.
-- **Audience output** — the speakers the crowd listens to. They'll only hear the instrumental.
-
-Hit **Test** next to each device to confirm sound comes out of the right place. If you only have one output device, the app plays the instrumental on the one output, just like a regular karaoke player.
-
-> **Linux tip:** Bluetooth, USB, or HDMI audio are the easiest way to get two separate outputs. The built-in jack and speakers share one audio path on most laptops and can't be split.
-
----
-
-### Step 2 — Import your music
-Open the **Studio** tab and click **Import Song**.
-Fill in the title and artist, then select your audio file (MP3, FLAC, WAV, OGG, and most common formats work). You can also drag a cover image into the thumbnail field.
-
----
-
-### Step 3 — Process with AI
-Each imported song shows a pipeline card with two actions:
-
-| Button | What it does | Time |
-|---|---|---|
-| **Split Audio** | Runs Demucs to separate vocals and instrumental | 1–5 min per song |
-| **Auto Lyrics** | Runs Whisper to transcribe time-synced lyrics | 30 s–3 min per song |
-
-A progress bar appears while the AI works. The first run of each AI model downloads it (~1 GB for Demucs, ~150 MB–1.5 GB for Whisper).
-> **Note:** *Auto Lyrics* requires *Split Audio* to finish first for higher transcription accuracy.
-
----
-
-### Step 4 — Edit lyrics (optional)
-Once lyrics are generated, click **Edit Lyrics** on any song to open the lyrics editor. The lyrics are stored in standard LRC format (`[MM:SS.xx] lyrics text`). You can fix transcription errors or adjust timing here.
-
----
-
-### Step 5 — Play and sing
-Click the play button on any song from the **Home** screen or the **Studio** tab. The lyrics scroll on screen in sync with the music.
-
-- Press **Space** to pause/resume.
-- Use the seek bar to jump to any point.
-- Toggle **Fullscreen Lyrics** for the big-screen karaoke view.
-- Adjust **Singer** and **Audience** volume sliders independently in the player bar.
-
----
-
-### Playlists
-In the **Playlists** tab, you can create ordered setlists. Songs in a playlist play back-to-back automatically, with a brief countdown between tracks so the next singer has time to step up.
-
----
-
 ## 📦 Desktop Bundles (Tauri)
 
 Installers for Linux (`.deb`, `.AppImage`) and Windows (NSIS `.exe`) are built by the [Release Workflow](.github/workflows/release.yml) on every `v*` tag.
@@ -194,16 +211,6 @@ cp -r dist/singchronized-backend frontend/src-tauri/resources/backend
 cd frontend
 npm run tauri build
 ```
-
----
-
-## ⌨️ Keyboard Shortcuts
-
-| Key | Action |
-|---|---|
-| `Space` | Play / Pause |
-| `←` / `→` | Seek back / forward 5 seconds |
-| `F` | Toggle fullscreen lyrics |
 
 ---
 
