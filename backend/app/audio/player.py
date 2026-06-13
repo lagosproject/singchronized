@@ -155,8 +155,17 @@ class KaraokePlayer:
         self.singer_device = singer_device
         self.audience_device = audience_device
 
-        self.thread1 = AudioStreamThread(song_path, singer_device, volume=self.singer_volume) if song_path else None
-        self.thread2 = AudioStreamThread(karaoke_path, audience_device, volume=self.audience_volume) if karaoke_path else None
+        single_device_mode = singer_device == audience_device
+
+        if single_device_mode:
+            # One output: skip vocals to avoid mixing both stems into the same
+            # device. Fall back to the full mix when stems aren't ready yet.
+            play_path = karaoke_path or song_path
+            self.thread1 = None
+            self.thread2 = AudioStreamThread(play_path, audience_device, volume=self.audience_volume) if play_path else None
+        else:
+            self.thread1 = AudioStreamThread(song_path, singer_device, volume=self.singer_volume) if song_path else None
+            self.thread2 = AudioStreamThread(karaoke_path, audience_device, volume=self.audience_volume) if karaoke_path else None
 
         if self.thread1:
             self.thread1.start()

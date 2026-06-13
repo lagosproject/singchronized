@@ -95,11 +95,83 @@ downloaded on first use to the usual torch/HuggingFace caches. Tip: install the 
 torch wheels (`pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu`)
 before freezing unless you want a multi-GB CUDA bundle.
 
-## 🎵 Usage
+## 🎵 User Guide
 
-1. Open the **Ingestion & Processing** tab and import an audio file (title + artist).
-2. Click **Split Audio** to separate vocals/instrumental, then **Auto Lyrics** to generate synced lyrics (editable afterwards in the lyrics editor).
-3. In **Settings → Audio Routing**, pick the singer (headphones) and audience (speakers) outputs.
-4. Hit play and sing your heart out! 🌟🎤🕺💃
+### Step 1 — Set up your audio outputs
 
-Songs, stems and lyrics are stored under `backend/library/`, indexed in `backend/library.db` (or the per-user data dir when running the packaged desktop app).
+Go to **Settings → Audio Routing** and pick two output devices:
+
+- **Singer output** — your headphones. You'll hear the full song with vocals so you can follow along.
+- **Audience output** — the speakers the crowd listens to. They'll only hear the instrumental.
+
+Hit **Test** next to each device to confirm sound comes out of the right place. If you only have one output device (e.g. a laptop with no external audio), the app works in single-device mode: it plays the instrumental on the one output, just like a regular karaoke player.
+
+> **Linux tip:** Bluetooth, USB, or HDMI audio are the easiest way to get two separate outputs. The built-in jack and speakers share one audio path on most laptops and can't be split.
+
+---
+
+### Step 2 — Import your music
+
+Open the **Studio** tab and click **Import Song**.
+
+![Import a song](docs/screenshots/studio-import.png)
+
+Fill in the title and artist, then pick your audio file (MP3, FLAC, WAV, OGG, and most common formats work). You can also drag a cover image into the thumbnail field.
+
+---
+
+### Step 3 — Process with AI
+
+Each imported song shows a pipeline card with two actions:
+
+| Button | What it does | Time |
+|---|---|---|
+| **Split Audio** | Runs Demucs to separate vocals and instrumental | 1–5 min per song |
+| **Auto Lyrics** | Runs Whisper to transcribe time-synced lyrics | 30 s–3 min per song |
+
+![AI pipeline progress](docs/screenshots/studio-pipeline.png)
+
+A progress bar appears while the AI works. You can queue multiple songs and they'll be processed one after another. The first run of each AI model downloads it (~1 GB for Demucs, ~150 MB–1.5 GB for Whisper depending on the size you pick in **Settings → AI**).
+
+> **Auto Lyrics requires Split Audio to finish first** — Whisper gets better results from the isolated vocals track.
+
+---
+
+### Step 4 — Edit lyrics (optional)
+
+Once lyrics are generated, click the **Edit Lyrics** button on any song to open the lyrics editor. The file is stored in standard [LRC format](https://en.wikipedia.org/wiki/LRC_(file_format)) — each line has a timestamp like `[01:23.45] Word or phrase`. You can fix transcription mistakes or adjust timing here.
+
+![Lyrics editor](docs/screenshots/lyrics-editor.png)
+
+---
+
+### Step 5 — Play and sing
+
+Click the play button on any song from the **Home** screen or the **Studio** tab. The lyrics scroll on screen in sync with the music.
+
+![Now playing with lyrics](docs/screenshots/fullscreen-lyrics.png)
+
+- Press **Space** to pause/resume
+- Use the seek bar to jump to any point
+- Toggle **Fullscreen Lyrics** for the big-screen karaoke view
+- Adjust **Singer** and **Audience** volume sliders independently in the player bar
+
+---
+
+### Playlists
+
+In the **Playlists** tab you can create ordered setlists. Songs in a playlist play back-to-back automatically, with a brief countdown between tracks so the next singer has time to step up.
+
+![Playlists view](docs/screenshots/playlists.png)
+
+---
+
+### Keyboard shortcuts
+
+| Key | Action |
+|---|---|
+| `Space` | Play / Pause |
+| `←` / `→` | Seek back / forward 5 seconds |
+| `F` | Toggle fullscreen lyrics |
+
+Songs, stems, and lyrics are stored in `backend/library/` during development, or in `~/.local/share/SingChronized` (Linux) / `%APPDATA%\SingChronized` (Windows) when running the packaged app.
