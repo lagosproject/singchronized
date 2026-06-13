@@ -9,33 +9,7 @@ Local AI does the heavy lifting:
 
 > Looking for the old Python/pygame CLI version? It's available as the [v1.0.0 release](https://github.com/lagosproject/Karaoke/releases/tag/v1.0.0).
 
-## Architecture
-
-| Part | Stack | Location |
-|---|---|---|
-| Backend | Python, FastAPI, sounddevice, Demucs, faster-whisper, SQLite | `backend/` |
-| Frontend | React 19, Vite | `frontend/` |
-
-The frontend talks to the backend over a REST API plus a websocket (`/api/ws/playback`) for real-time playback position and AI task progress. The app ships as a **Tauri desktop app** (`frontend/src-tauri/`): the Python backend is frozen with PyInstaller and spawned by Tauri as a sidecar on a free port, which is injected into the webview at startup. Alternatively, the backend can serve the built frontend itself as a plain web app.
-
-```
-backend/app/
-├── main.py        # FastAPI app factory + lifespan
-├── config.py      # Paths and constants
-├── schemas.py     # Pydantic request models
-├── database.py    # SQLite song repository
-├── ws.py          # Websocket connection manager
-├── routers/       # HTTP/WS endpoints (songs, lyrics, playback, playlists, devices, system)
-├── services/      # Library files, lyrics, playlist logic
-├── workers/       # Background AI queue (Demucs split, Whisper transcription)
-└── audio/         # Dual-output audio engine (singer + audience devices)
-
-frontend/src/
-├── api/           # REST client
-├── context/       # App-wide state provider
-├── hooks/         # Playback socket, library, queue, playlists, devices…
-└── components/    # home / studio / settings / player / playlists / songs
-```
+> For a full technical reference — stack, API, data model, audio engine, AI pipeline, and Tauri packaging — see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## 🛠 Setup
 
