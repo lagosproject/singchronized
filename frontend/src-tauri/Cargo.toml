@@ -1,0 +1,23 @@
+[package]
+name = "singchronized"
+version = "2.0.0"
+description = "SingChronized — AI-powered karaoke player"
+authors = ["Pablo Fernandez Lagos"]
+license = "MIT"
+edition = "2021"
+
+[lib]
+name = "singchronized_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"
+
+[profile.release]
+strip = true

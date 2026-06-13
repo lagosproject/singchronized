@@ -1,5 +1,0 @@
-pygame
-sounddevice
-soundfile
-numpy
-pyinstaller

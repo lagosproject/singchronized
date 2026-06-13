@@ -3,80 +3,105 @@ name: Release
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "v*"
+  workflow_dispatch:
 
 jobs:
   build:
+    permissions:
+      contents: write
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            asset_name: karaoke-linux-x86_64
-            artifact: karaoke
-          - os: windows-latest
-            asset_name: karaoke-windows-x86_64
-            artifact: karaoke.exe
-
-    runs-on: ${{ matrix.os }}
+          - platform: ubuntu-22.04
+            bundles: appimage,deb
+          - platform: windows-latest
+            bundles: nsis
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
+            librsvg2-dev patchelf build-essential libssl-dev libgtk-3-dev
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - uses: dtolnay/rust-toolchain@stable
 
-      - name: Build
-        run: pyinstaller app.spec --noconfirm
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: frontend/src-tauri
 
-      - name: Package (Linux)
-        if: runner.os == 'Linux'
+      - name: Install backend dependencies (CPU torch)
+        shell: bash
         run: |
-          mkdir ${{ matrix.asset_name }}
-          cp dist/${{ matrix.artifact }} ${{ matrix.asset_name }}/
-          cp -r example ${{ matrix.asset_name }}/
-          tar -czf ${{ matrix.asset_name }}.tar.gz ${{ matrix.asset_name }}
+          python -m pip install --upgrade pip
+          # CPU-only torch keeps the bundle a fraction of the CUDA build's size
+          pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install -r backend/requirements.txt pyinstaller
 
-      - name: Package (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
+      - name: Build backend sidecar with PyInstaller
+        shell: bash
+        run: pyinstaller singchronized-backend.spec --noconfirm
+
+      - name: Stage backend into Tauri resources
+        shell: bash
         run: |
-          New-Item -ItemType Directory ${{ matrix.asset_name }}
-          Copy-Item dist\${{ matrix.artifact }} ${{ matrix.asset_name }}\
-          Copy-Item -Recurse example ${{ matrix.asset_name }}\
-          Compress-Archive -Path ${{ matrix.asset_name }} -DestinationPath ${{ matrix.asset_name }}.zip
+          mkdir -p frontend/src-tauri/resources
+          cp -r dist/singchronized-backend frontend/src-tauri/resources/backend
 
-      - name: Upload artifact (Linux)
-        if: runner.os == 'Linux'
+      - name: Help linuxdeploy resolve PyInstaller libs (AppImage)
+        if: matrix.platform == 'ubuntu-22.04'
+        # linuxdeploy ignores rpath/$ORIGIN, so wheel-mangled libs inside the
+        # frozen backend (e.g. libdrm-<hash>.so from av/torchcodec) appear
+        # unresolvable. Point LD_LIBRARY_PATH at the lib dirs as they will be
+        # staged inside the AppDir; libs found there are treated as already
+        # deployed instead of being copied again.
+        run: |
+          appdir="$GITHUB_WORKSPACE/frontend/src-tauri/target/release/bundle/appimage/SingChronized.AppDir/usr/lib/SingChronized/backend"
+          libpath=$(find dist/singchronized-backend/_internal -name '*.so*' -printf '%h\n' | sort -u \
+            | sed "s|^dist/singchronized-backend|$appdir|" | paste -sd:)
+          echo "LD_LIBRARY_PATH=$libpath" >> "$GITHUB_ENV"
+          echo "NO_STRIP=true" >> "$GITHUB_ENV"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build and bundle Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: frontend
+          # On tag pushes, upload bundles to a draft GitHub release
+          tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('SingChronized {0}', github.ref_name) || '' }}
+          releaseDraft: true
+          args: --bundles ${{ matrix.bundles }}
+
+      - name: Upload artifacts (manual runs)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset_name }}
-          path: ${{ matrix.asset_name }}.tar.gz
-
-      - name: Upload artifact (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.asset_name }}
-          path: ${{ matrix.asset_name }}.zip
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-          merge-multiple: true
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/*
-          generate_release_notes: true
+          name: singchronized-${{ matrix.platform }}
+          path: |
+            frontend/src-tauri/target/release/bundle/deb/*.deb
+            frontend/src-tauri/target/release/bundle/appimage/*.AppImage
+            frontend/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
