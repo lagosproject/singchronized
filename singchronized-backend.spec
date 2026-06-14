@@ -10,7 +10,7 @@ hiddenimports = []
 
 # Packages with non-Python assets or dynamic imports the analyzer misses:
 # demucs ships remote model yaml files, faster_whisper ships VAD assets.
-for pkg in ("demucs", "faster_whisper"):
+for pkg in ("demucs", "faster_whisper", "numpy"):
     d, b, h = collect_all(pkg)
     datas += d
     binaries += b
@@ -20,6 +20,9 @@ for pkg in ("demucs", "faster_whisper"):
 hiddenimports += collect_submodules("uvicorn")
 # websockets is the WS transport; uvicorn imports it at runtime via importlib.
 hiddenimports += collect_submodules("websockets")
+# numpy.core.multiarray is referenced by pickled Demucs model checkpoints;
+# collect_all("numpy") above should bundle it, but list it explicitly too.
+hiddenimports += ["numpy.core.multiarray", "numpy.core._multiarray_umath"]
 
 a = Analysis(
     ["backend/server.py"],

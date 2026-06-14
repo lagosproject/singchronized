@@ -15,6 +15,18 @@ def main():
     multiprocessing.freeze_support()
 
     if len(sys.argv) > 1 and sys.argv[1] == "demucs":
+        # torchaudio.save in newer versions tries torchcodec first, which requires
+        # CUDA libraries not present in a CPU-only build. Patch it to use soundfile
+        # instead, which is already bundled and works on all platforms.
+        import torchaudio
+        import soundfile as sf
+
+        def _save_via_soundfile(uri, src, sample_rate, **kwargs):
+            data = src.numpy().T  # [C, N] → [N, C]
+            sf.write(str(uri), data, sample_rate, subtype="PCM_24")
+
+        torchaudio.save = _save_via_soundfile
+
         from demucs.separate import main as demucs_main
         demucs_main(sys.argv[2:])
         return
