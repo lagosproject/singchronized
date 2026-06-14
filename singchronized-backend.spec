@@ -18,6 +18,8 @@ for pkg in ("demucs", "faster_whisper"):
 
 # uvicorn picks loops/protocols/lifespan implementations at runtime.
 hiddenimports += collect_submodules("uvicorn")
+# websockets is the WS transport; uvicorn imports it at runtime via importlib.
+hiddenimports += collect_submodules("websockets")
 
 a = Analysis(
     ["backend/server.py"],

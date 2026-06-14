@@ -9,3 +9,4 @@ pydantic==2.13.4
 sqlalchemy==2.0.50
 jinja2==3.1.6
 python-multipart==0.0.32
+websockets==16.0

@@ -1,6 +1,6 @@
 [package]
 name = "singchronized"
-version = "2.0.4"
+version = "2.0.5"
 description = "SingChronized — AI-powered karaoke player"
 authors = ["Pablo Fernandez Lagos"]
 license = "MIT"
