@@ -365,13 +365,26 @@ class KaraokePlayer:
                     info = sd.query_devices(pa_audience)
                     audience_channels = min(2, info.get('max_output_channels', 2))
 
+                single_device = pa_singer == pa_audience
+
                 # Initialize persistent streams
-                stream_singer = sd.OutputStream(device=pa_singer, samplerate=samplerate, channels=singer_channels, dtype='float32')
-                stream_audience = sd.OutputStream(device=pa_audience, samplerate=samplerate, channels=audience_channels, dtype='float32')
-                
-                stream_singer.start()
-                stream_audience.start()
+                if single_device:
+                    stream_audience = sd.OutputStream(device=pa_audience, samplerate=samplerate, channels=audience_channels, dtype='float32')
+                    stream_singer = None
+                    stream_audience.start()
+                else:
+                    stream_singer = sd.OutputStream(device=pa_singer, samplerate=samplerate, channels=singer_channels, dtype='float32')
+                    stream_audience = sd.OutputStream(device=pa_audience, samplerate=samplerate, channels=audience_channels, dtype='float32')
+                    stream_singer.start()
+                    stream_audience.start()
             except Exception as e:
+                import traceback
+                try:
+                    with open("backend_error.log", "w") as f:
+                        f.write(f"Error starting calibration streams: {e}\n")
+                        traceback.print_exc(file=f)
+                except Exception:
+                    pass
                 print(f"Error starting calibration streams: {e}")
                 self.calibration_active = False
                 return
@@ -402,17 +415,20 @@ class KaraokePlayer:
 
                     delay = getattr(self, "vocals_delay", 0.0)
 
-                    if delay > 0:
-                        stream_audience.write(tone_audience)
-                        time.sleep(delay)
-                        stream_singer.write(tone_singer)
-                    elif delay < 0:
-                        stream_singer.write(tone_singer)
-                        time.sleep(-delay)
+                    if single_device:
                         stream_audience.write(tone_audience)
                     else:
-                        stream_singer.write(tone_singer)
-                        stream_audience.write(tone_audience)
+                        if delay > 0:
+                            stream_audience.write(tone_audience)
+                            time.sleep(delay)
+                            stream_singer.write(tone_singer)
+                        elif delay < 0:
+                            stream_singer.write(tone_singer)
+                            time.sleep(-delay)
+                            stream_audience.write(tone_audience)
+                        else:
+                            stream_singer.write(tone_singer)
+                            stream_audience.write(tone_audience)
 
                     # Sleep in steps of 0.1s to allow responsive stopping
                     elapsed = abs(delay)
@@ -426,13 +442,21 @@ class KaraokePlayer:
                     if rem > 0 and self.calibration_active:
                         time.sleep(rem)
             except Exception as e:
-                print(f"Error during calibration loop: {e}")
-            finally:
+                import traceback
                 try:
-                    stream_singer.stop()
-                    stream_singer.close()
+                    with open("backend_error.log", "w") as f:
+                        f.write(f"Error during calibration loop: {e}\n")
+                        traceback.print_exc(file=f)
                 except Exception:
                     pass
+                print(f"Error during calibration loop: {e}")
+            finally:
+                if stream_singer:
+                    try:
+                        stream_singer.stop()
+                        stream_singer.close()
+                    except Exception:
+                        pass
                 try:
                     stream_audience.stop()
                     stream_audience.close()
