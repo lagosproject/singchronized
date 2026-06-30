@@ -342,7 +342,7 @@ class KaraokePlayer:
     def stop_calibration(self):
         self.calibration_active = False
         if self.calibration_thread:
-            self.calibration_thread.join(timeout=0.5)
+            self.calibration_thread.join(timeout=1.0)
             self.calibration_thread = None
         sd.stop()
 
@@ -352,59 +352,92 @@ class KaraokePlayer:
         samplerate = 44100
         duration = 0.1
 
-        while self.calibration_active:
-            freq = frequencies[freq_idx]
-            freq_idx = (freq_idx + 1) % len(frequencies)
+        # Resolve targets once
+        with open_target(singer_device) as pa_singer, open_target(audience_device) as pa_audience:
+            try:
+                # Query channels
+                singer_channels = 2
+                audience_channels = 2
+                if isinstance(pa_singer, int):
+                    info = sd.query_devices(pa_singer)
+                    singer_channels = min(2, info.get('max_output_channels', 2))
+                if isinstance(pa_audience, int):
+                    info = sd.query_devices(pa_audience)
+                    audience_channels = min(2, info.get('max_output_channels', 2))
 
-            t = np.linspace(0, duration, int(samplerate * duration), endpoint=False)
-            envelope = np.ones_like(t)
-            fade_len = int(samplerate * 0.005)
-            envelope[:fade_len] = np.linspace(0, 1, fade_len)
-            envelope[-fade_len:] = np.linspace(1, 0, fade_len)
-
-            tone = 0.3 * np.sin(2 * np.pi * freq * t) * envelope
-            tone = np.column_stack([tone, tone])
-
-            delay = getattr(self, "vocals_delay", 0.0)
+                # Initialize persistent streams
+                stream_singer = sd.OutputStream(device=pa_singer, samplerate=samplerate, channels=singer_channels, dtype='float32')
+                stream_audience = sd.OutputStream(device=pa_audience, samplerate=samplerate, channels=audience_channels, dtype='float32')
+                
+                stream_singer.start()
+                stream_audience.start()
+            except Exception as e:
+                print(f"Error starting calibration streams: {e}")
+                self.calibration_active = False
+                return
 
             try:
-                with open_target(singer_device) as pa_singer, open_target(audience_device) as pa_audience:
-                    tone_singer = tone
-                    tone_audience = tone
-                    if isinstance(pa_singer, int):
-                        info = sd.query_devices(pa_singer)
-                        if info.get('max_output_channels', 2) == 1:
-                            tone_singer = tone[:, :1]
-                    if isinstance(pa_audience, int):
-                        info = sd.query_devices(pa_audience)
-                        if info.get('max_output_channels', 2) == 1:
-                            tone_audience = tone[:, :1]
+                while self.calibration_active:
+                    freq = frequencies[freq_idx]
+                    freq_idx = (freq_idx + 1) % len(frequencies)
+
+                    t = np.linspace(0, duration, int(samplerate * duration), endpoint=False)
+                    envelope = np.ones_like(t)
+                    fade_len = int(samplerate * 0.005)
+                    envelope[:fade_len] = np.linspace(0, 1, fade_len)
+                    envelope[-fade_len:] = np.linspace(1, 0, fade_len)
+
+                    tone_base = 0.3 * np.sin(2 * np.pi * freq * t) * envelope
+                    tone_base = tone_base.astype(np.float32)
+
+                    if singer_channels == 2:
+                        tone_singer = np.column_stack([tone_base, tone_base])
+                    else:
+                        tone_singer = tone_base.reshape(-1, 1)
+
+                    if audience_channels == 2:
+                        tone_audience = np.column_stack([tone_base, tone_base])
+                    else:
+                        tone_audience = tone_base.reshape(-1, 1)
+
+                    delay = getattr(self, "vocals_delay", 0.0)
 
                     if delay > 0:
-                        sd.play(tone_audience, samplerate=samplerate, device=pa_audience)
+                        stream_audience.write(tone_audience)
                         time.sleep(delay)
-                        sd.play(tone_singer, samplerate=samplerate, device=pa_singer)
+                        stream_singer.write(tone_singer)
                     elif delay < 0:
-                        sd.play(tone_singer, samplerate=samplerate, device=pa_singer)
+                        stream_singer.write(tone_singer)
                         time.sleep(-delay)
-                        sd.play(tone_audience, samplerate=samplerate, device=pa_audience)
+                        stream_audience.write(tone_audience)
                     else:
-                        sd.play(tone_singer, samplerate=samplerate, device=pa_singer)
-                        sd.play(tone_audience, samplerate=samplerate, device=pa_audience)
-            except Exception as e:
-                print(f"Error playing calibration tone: {e}")
+                        stream_singer.write(tone_singer)
+                        stream_audience.write(tone_audience)
 
-            # Sleep in steps of 0.1s to allow responsive stopping
-            elapsed = abs(delay)
-            wait_time = max(0.1, 1.0 - elapsed)
-            steps = int(wait_time / 0.1)
-            for _ in range(steps):
-                if not self.calibration_active:
-                    break
-                time.sleep(0.1)
-            rem = wait_time % 0.1
-            if rem > 0 and self.calibration_active:
-                time.sleep(rem)
+                    # Sleep in steps of 0.1s to allow responsive stopping
+                    elapsed = abs(delay)
+                    wait_time = max(0.1, 1.0 - elapsed)
+                    steps = int(wait_time / 0.1)
+                    for _ in range(steps):
+                        if not self.calibration_active:
+                            break
+                        time.sleep(0.1)
+                    rem = wait_time % 0.1
+                    if rem > 0 and self.calibration_active:
+                        time.sleep(rem)
+            except Exception as e:
+                print(f"Error during calibration loop: {e}")
+            finally:
+                try:
+                    stream_singer.stop()
+                    stream_singer.close()
+                except Exception:
+                    pass
+                try:
+                    stream_audience.stop()
+                    stream_audience.close()
+                except Exception:
+                    pass
 
 
 # Global player instance
