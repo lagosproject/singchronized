@@ -10,42 +10,54 @@ from ..config import BLOCKSIZE, BUFFERSIZE
 from .devices import open_target, pipewire_available
 
 
-class AudioStreamThread(threading.Thread):
-    def __init__(self, filepath, device_id, volume=1.0, delay_seconds=0.0):
-        super().__init__()
+class AudioStreamThread:
+    def __init__(self, filepath, device_id, volume=1.0, delay_seconds=0.0, is_vocals=False, player=None):
         self.filepath = filepath
         self.device_id = device_id
         self.volume = volume
         self.delay_seconds = delay_seconds
+        self.is_vocals = is_vocals
+        self.player = player
+        
         self.is_paused = False
         self.is_finished = False
         self.is_ready = False
-        self.q = queue.Queue(maxsize=BUFFERSIZE)
-        self.event = threading.Event()
-        self.current_frame = 0
+        
         self.samplerate = 44100
         self.total_frames = 0
+        self.channels = 2
+        self.current_frame = 0
         self.stream = None
+        self.audio_data = None
+        
         self.seek_target_frame = None
 
-    def callback(self, outdata, frames, time_info, status):
-        if status.output_underflow:
-            raise sd.CallbackAbort
+    def start(self):
         try:
-            data = self.q.get_nowait()
-        except queue.Empty:
-            # Buffer underflow, fill with silence
-            outdata.fill(0)
+            with sf.SoundFile(self.filepath) as f:
+                self.samplerate = f.samplerate
+                self.total_frames = len(f)
+                self.channels = f.channels
+                self.audio_data = f.read(dtype='float32')
+        except Exception as e:
+            print(f"Error loading audio file: {e}")
+            self.is_finished = True
             return
 
-        if len(data) < len(outdata):
-            outdata[:len(data)] = data * self.volume
-            outdata[len(data):].fill(0)
-            raise sd.CallbackStop
-        else:
-            outdata[:] = data * self.volume
-            if not self.is_paused:
-                self.current_frame += frames
+        with open_target(self.device_id) as pa_device:
+            self.stream = sd.OutputStream(
+                samplerate=self.samplerate,
+                blocksize=BLOCKSIZE,
+                device=pa_device,
+                channels=self.channels,
+                dtype='float32',
+                callback=self.callback
+            )
+        self.stream.start()
+        self.is_ready = True
+
+    def is_alive(self):
+        return self.is_ready and not self.is_finished
 
     def pause(self):
         self.is_paused = True
@@ -55,86 +67,81 @@ class AudioStreamThread(threading.Thread):
 
     def finish(self):
         self.is_finished = True
-        self.event.set()
+        if self.stream:
+            try:
+                self.stream.stop()
+                self.stream.close()
+            except Exception:
+                pass
 
-    def run(self):
-        try:
-            with sf.SoundFile(self.filepath) as f:
-                self.samplerate = f.samplerate
-                self.total_frames = len(f)
-                channels = f.channels
+    def join(self, timeout=None):
+        pass
 
-                # Pre-fill queue with silence blocks first
-                delay_blocks = int(round(self.delay_seconds * self.samplerate / BLOCKSIZE))
-                silence_to_prefill = min(delay_blocks, BUFFERSIZE)
-                
-                for _ in range(silence_to_prefill):
-                    self.q.put_nowait(np.zeros((BLOCKSIZE, channels), dtype=np.float32))
-                
-                delay_blocks_remaining = delay_blocks - silence_to_prefill
+    def callback(self, outdata, frames, time_info, status):
+        if self.is_finished:
+            outdata.fill(0)
+            return
 
-                # Pre-fill the rest of the queue with actual audio data
-                try:
-                    for _ in range(BUFFERSIZE - silence_to_prefill):
-                        data = f.read(BLOCKSIZE)
-                        if not len(data):
-                            break
-                        self.q.put_nowait(data)
-                except queue.Full:
-                    pass
+        if self.seek_target_frame is not None:
+            self.current_frame = self.seek_target_frame
+            self.seek_target_frame = None
+            if self.player:
+                self.player.start_time_dac = 0.0
 
-                with open_target(self.device_id) as pa_device:
-                    self.stream = sd.OutputStream(
-                        samplerate=self.samplerate,
-                        blocksize=BLOCKSIZE,
-                        device=pa_device,
-                        channels=channels,
-                        callback=self.callback,
-                        finished_callback=self.event.set
-                    )
+        if self.is_paused:
+            outdata.fill(0)
+            return
 
-                with self.stream:
-                    timeout = BLOCKSIZE * BUFFERSIZE / self.samplerate
-                    self.is_ready = True
-                    while not self.is_finished:
-                        if self.seek_target_frame is not None:
-                            target = self.seek_target_frame
-                            self.seek_target_frame = None
+        # Initialize shared start time
+        t_dac = time_info.outputBufferDacTime
+        if self.player and getattr(self.player, "start_time_dac", 0.0) == 0.0:
+            self.player.start_time_dac = t_dac
 
-                            f.seek(target)
-                            while not self.q.empty():
-                                try:
-                                    self.q.get_nowait()
-                                except queue.Empty:
-                                    break
+        # Calculate time elapsed
+        elapsed = 0.0
+        if self.player and self.player.start_time_dac > 0.0:
+            elapsed = t_dac - self.player.start_time_dac
+            elapsed -= getattr(self.player, "pause_duration_dac", 0.0)
 
-                            # Reset delay blocks remaining on seek since seek offsets are handles individually
-                            delay_blocks_remaining = 0
-                            self.current_frame = target
-                            if not self.is_paused:
-                                for _ in range(BUFFERSIZE):
-                                    data = f.read(BLOCKSIZE)
-                                    if not len(data):
-                                        break
-                                    self.q.put(data, timeout=timeout)
+        # Determine delay dynamically
+        delay = 0.0
+        if self.player:
+            vocals_delay = getattr(self.player, "vocals_delay", 0.0)
+            if self.is_vocals:
+                if vocals_delay < 0:
+                    delay = -vocals_delay
+            else:
+                if vocals_delay > 0:
+                    delay = vocals_delay
 
-                        if self.is_paused:
-                            # Feed silence when paused
-                            self.q.put(np.zeros((BLOCKSIZE, channels)), timeout=timeout)
-                        elif delay_blocks_remaining > 0:
-                            self.q.put(np.zeros((BLOCKSIZE, channels), dtype=np.float32), timeout=timeout)
-                            delay_blocks_remaining -= 1
-                        else:
-                            data = f.read(BLOCKSIZE)
-                            if not len(data):
-                                break
-                            self.q.put(data, timeout=timeout)
-                    self.event.wait()
-        except Exception as e:
-            print(f"Error in audio thread: {e}")
-        finally:
-            self.is_finished = True
-            self.is_ready = False
+        seek_time = getattr(self.player, "seek_time", 0.0) if self.player else 0.0
+        current_time = seek_time + elapsed - delay
+        start_idx = int(round(current_time * self.samplerate))
+
+        if start_idx < 0:
+            silence_len = min(frames, -start_idx)
+            outdata[:silence_len].fill(0)
+            if silence_len < frames:
+                read_len = frames - silence_len
+                end_idx = min(self.total_frames, read_len)
+                data = self.audio_data[0:end_idx]
+                outdata[silence_len:silence_len+len(data)] = data * self.volume
+                self.current_frame = end_idx
+                if len(data) < read_len:
+                    outdata[silence_len+len(data):].fill(0)
+                    self.is_finished = True
+        else:
+            if start_idx >= self.total_frames:
+                outdata.fill(0)
+                self.is_finished = True
+            else:
+                end_idx = min(self.total_frames, start_idx + frames)
+                data = self.audio_data[start_idx:end_idx]
+                outdata[:len(data)] = data * self.volume
+                self.current_frame = end_idx
+                if len(data) < frames:
+                    outdata[len(data):].fill(0)
+                    self.is_finished = True
 
 
 class CalibrationStreamCallback:
@@ -236,15 +243,20 @@ class KaraokePlayer:
         t1_delay = -vocals_delay if vocals_delay < 0 else 0.0
         t2_delay = vocals_delay if vocals_delay > 0 else 0.0
 
+        self.start_time_dac = 0.0
+        self.pause_duration_dac = 0.0
+        self.pause_start_time_dac = 0.0
+        self.seek_time = 0.0
+
         if single_device_mode:
             # One output: skip vocals to avoid mixing both stems into the same
             # device. Fall back to the full mix when stems aren't ready yet.
             play_path = karaoke_path or song_path
             self.thread1 = None
-            self.thread2 = AudioStreamThread(play_path, audience_device, volume=self.audience_volume) if play_path else None
+            self.thread2 = AudioStreamThread(play_path, audience_device, volume=self.audience_volume, delay_seconds=t2_delay, is_vocals=False, player=self) if play_path else None
         else:
-            self.thread1 = AudioStreamThread(song_path, singer_device, volume=self.singer_volume, delay_seconds=t1_delay) if song_path else None
-            self.thread2 = AudioStreamThread(karaoke_path, audience_device, volume=self.audience_volume, delay_seconds=t2_delay) if karaoke_path else None
+            self.thread1 = AudioStreamThread(song_path, singer_device, volume=self.singer_volume, delay_seconds=t1_delay, is_vocals=True, player=self) if song_path else None
+            self.thread2 = AudioStreamThread(karaoke_path, audience_device, volume=self.audience_volume, delay_seconds=t2_delay, is_vocals=False, player=self) if karaoke_path else None
 
         if self.thread1:
             self.thread1.start()
@@ -253,8 +265,6 @@ class KaraokePlayer:
 
         self.is_playing = True
         self.is_paused = False
-        self.start_time = time.time()
-        self.pause_duration = 0
 
     def pause_song(self):
         if not self.is_playing or self.is_paused:
@@ -264,7 +274,7 @@ class KaraokePlayer:
         if self.thread2:
             self.thread2.pause()
         self.is_paused = True
-        self.pause_start_time = time.time()
+        self.pause_start_time_dac = sd.get_time()
 
     def resume_song(self):
         if not self.is_playing or not self.is_paused:
@@ -274,7 +284,7 @@ class KaraokePlayer:
         if self.thread2:
             self.thread2.resume()
         self.is_paused = False
-        self.pause_duration += time.time() - self.pause_start_time
+        self.pause_duration_dac += sd.get_time() - self.pause_start_time_dac
 
     def stop_song(self):
         if getattr(self, "calibration_active", False):
@@ -282,15 +292,16 @@ class KaraokePlayer:
 
         if self.thread1:
             self.thread1.finish()
-            self.thread1.join(timeout=1.0)
             self.thread1 = None
         if self.thread2:
             self.thread2.finish()
-            self.thread2.join(timeout=1.0)
             self.thread2 = None
         self.is_playing = False
         self.is_paused = False
         self.current_song_id = None
+        self.start_time_dac = 0.0
+        self.pause_duration_dac = 0.0
+        self.seek_time = 0.0
 
     def set_volumes(self, singer_volume, audience_volume):
         self.singer_volume = max(0.0, min(1.0, float(singer_volume)))
@@ -315,6 +326,11 @@ class KaraokePlayer:
 
         vocals_delay = getattr(self, "vocals_delay", 0.0)
 
+        # Clear DAC reference values on seek
+        self.seek_time = position_seconds
+        self.start_time_dac = 0.0
+        self.pause_duration_dac = 0.0
+
         if self.thread1 and self.thread1.is_alive():
             vocals_pos = position_seconds
             if vocals_delay > 0:
@@ -331,14 +347,6 @@ class KaraokePlayer:
             target_frame = max(0, min(target_frame, self.thread2.total_frames))
             self.thread2.seek_target_frame = target_frame
 
-        if self.is_paused:
-            self.pause_start_time = time.time()
-            self.start_time = self.pause_start_time - position_seconds
-            self.pause_duration = 0
-        else:
-            self.start_time = time.time() - position_seconds
-            self.pause_duration = 0
-
     def get_current_time(self):
         if not self.is_playing:
             return 0.0
@@ -349,11 +357,7 @@ class KaraokePlayer:
         # Fallback to vocals thread
         if self.thread1 and self.thread1.is_ready:
             return self.thread1.current_frame / self.thread1.samplerate
-
-        # Fallback to system timer
-        if self.is_paused:
-            return self.pause_start_time - self.start_time - self.pause_duration
-        return time.time() - self.start_time - self.pause_duration
+        return self.seek_time
 
     def get_status(self):
         if self.is_playing:

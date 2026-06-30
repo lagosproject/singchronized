@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Headphones, Volume2, Play, Square, Activity } from 'lucide-react';
 import { useApp } from '../../context/app-context';
 
@@ -54,15 +54,36 @@ function DeviceRoutingPanel({ icon, label, volumeLabel, device, onDeviceChange, 
 }
 
 export default function AudioSettings() {
-  const { devices, playback } = useApp();
+  const { devices, playback, library } = useApp();
   const { singerVolume, setSingerVolume, audienceVolume, setAudienceVolume, updateVolume, vocalsDelay, updateDelay } = playback;
   const { singerDevice, audienceDevice, isCalibrating, startCalibration, stopCalibration } = devices;
   const hasMultipleOutputs = devices.devices.length > 1;
+
+  const [calibrationMode, setCalibrationMode] = useState('tone');
+  const [selectedSongId, setSelectedSongId] = useState('');
+
+  const readySongs = library?.songs?.filter(s => s.status === 'synced' || s.status === 'ready') || [];
+  const isSongPlaying = playback.playingSong !== null && playback.playback.is_playing;
+
+  useEffect(() => {
+    if (readySongs.length > 0 && !selectedSongId) {
+      setSelectedSongId(readySongs[0].id.toString());
+    }
+  }, [readySongs, selectedSongId]);
+
+  const toggleSongCalibration = () => {
+    if (isSongPlaying) {
+      playback.stop();
+    } else if (selectedSongId) {
+      playback.play(Number(selectedSongId));
+    }
+  };
 
   // Clean up calibration on unmount
   useEffect(() => {
     return () => {
       stopCalibration();
+      playback.stop();
     };
   }, []);
 
@@ -115,34 +136,123 @@ export default function AudioSettings() {
 
         {hasMultipleOutputs && (
           <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Activity size={18} color="var(--secondary)" />
-                <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Device Synchronization (Latency Calibration)</span>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Device Synchronization (Latency Calibration)</span>
+            </div>
+
+            {/* Mode selection buttons */}
+            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '12px' }}>
               <button
-                onClick={() => isCalibrating ? stopCalibration() : startCalibration(singerDevice, audienceDevice)}
-                className="interactive-btn"
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  fontSize: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: isCalibrating ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                  border: isCalibrating ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border-color)',
-                  color: isCalibrating ? '#f87171' : 'white',
-                  cursor: 'pointer'
+                onClick={() => {
+                  if (isSongPlaying) playback.stop();
+                  if (isCalibrating) stopCalibration();
+                  setCalibrationMode('tone');
                 }}
+                className={`interactive-btn ${calibrationMode === 'tone' ? '' : 'secondary-btn'}`}
+                style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}
               >
-                {isCalibrating ? <Square size={12} /> : <Play size={12} />}
-                {isCalibrating ? 'Stop Calibration Tone' : 'Start Calibration Tone'}
+                Use Calibration Tone
+              </button>
+              <button
+                onClick={() => {
+                  if (isSongPlaying) playback.stop();
+                  if (isCalibrating) stopCalibration();
+                  setCalibrationMode('song');
+                }}
+                className={`interactive-btn ${calibrationMode === 'song' ? '' : 'secondary-btn'}`}
+                style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}
+              >
+                Use Library Song
               </button>
             </div>
 
+            {calibrationMode === 'tone' ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Activity size={18} color="var(--secondary)" />
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Calibration Tone (Beats)</span>
+                </div>
+                <button
+                  onClick={() => isCalibrating ? stopCalibration() : startCalibration(singerDevice, audienceDevice)}
+                  className="interactive-btn"
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: isCalibrating ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                    border: isCalibrating ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border-color)',
+                    color: isCalibrating ? '#f87171' : 'white',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {isCalibrating ? <Square size={12} /> : <Play size={12} />}
+                  {isCalibrating ? 'Stop Calibration Tone' : 'Start Calibration Tone'}
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Calibrate using Library Song</span>
+                  <button
+                    onClick={toggleSongCalibration}
+                    disabled={readySongs.length === 0}
+                    className="interactive-btn"
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: isSongPlaying ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                      border: isSongPlaying ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border-color)',
+                      color: isSongPlaying ? '#f87171' : 'white',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {isSongPlaying ? <Square size={12} /> : <Play size={12} />}
+                    {isSongPlaying ? 'Stop Song Playback' : 'Start Song Playback'}
+                  </button>
+                </div>
+                
+                {readySongs.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Select Song for Calibration</label>
+                    <select
+                      value={selectedSongId}
+                      onChange={(e) => {
+                        if (isSongPlaying) playback.stop();
+                        setSelectedSongId(e.target.value);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        background: 'rgba(0,0,0,0.2)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        color: 'white',
+                        fontSize: '0.85rem',
+                        outline: 'none'
+                      }}
+                    >
+                      {readySongs.map(s => (
+                        <option key={s.id} value={s.id}>{s.title} - {s.artist}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.8rem', color: '#f87171', background: 'rgba(239, 68, 68, 0.05)', border: '1px dashed rgba(239, 68, 68, 0.2)', padding: '10px 12px', borderRadius: '6px' }}>
+                    No split songs found in your library. Please go to Ingestion & Processing and split a track first.
+                  </div>
+                )}
+              </div>
+            )}
+
             <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-              If singer monitoring (headphones) and audience master (speakers) sound out of sync (e.g. when using Bluetooth or wireless speakers), play the calibration tone and adjust the delay until the notes merge into a single beat.
+              If singer monitoring (headphones) and audience master (speakers) sound out of sync (e.g. when using Bluetooth or wireless speakers), play the calibration tone or a song and adjust the delay until the notes merge into a single beat.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
