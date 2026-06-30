@@ -1,8 +1,8 @@
-import { Layers, Music, Settings, Trash2 } from 'lucide-react';
+import { Layers, Music, Settings, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import { useApp } from '../../context/app-context';
 import { resolveMediaUrl } from '../../config';
 
-export default function Sidebar({ activeTab, setActiveTab }) {
+export default function Sidebar({ activeTab, setActiveTab, isFullscreen, toggleFullscreen }) {
   const { playlists, queue } = useApp();
   const { selectedPlaylist, setSelectedPlaylist } = playlists;
 
@@ -44,6 +44,15 @@ export default function Sidebar({ activeTab, setActiveTab }) {
         >
           <Settings size={18} />
           Settings
+        </button>
+        <button
+          onClick={toggleFullscreen}
+          className="interactive-btn secondary-btn"
+          style={{ justifyContent: 'flex-start', width: '100%' }}
+          title={isFullscreen ? "Exit Fullscreen (F11)" : "Fullscreen (F11)"}
+        >
+          {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
         </button>
       </nav>
 
