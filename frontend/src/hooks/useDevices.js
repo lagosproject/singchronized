@@ -6,6 +6,7 @@ export function useDevices() {
   const [singerDevice, setSingerDevice] = useState(null);
   const [audienceDevice, setAudienceDevice] = useState(null);
   const [gpuStatus, setGpuStatus] = useState({ has_gpu: false, gpu_name: null });
+  const [isCalibrating, setIsCalibrating] = useState(false);
 
   const refreshDevices = useCallback(() => {
     api.getDevices()
@@ -86,14 +87,35 @@ export function useDevices() {
     playTestTone(deviceId);
   };
 
+  const startCalibration = async (sDev, aDev) => {
+    try {
+      await api.startCalibration(sDev, aDev);
+      setIsCalibrating(true);
+    } catch (err) {
+      console.error("Failed to start calibration:", err);
+    }
+  };
+
+  const stopCalibration = async () => {
+    try {
+      await api.stopCalibration();
+      setIsCalibrating(false);
+    } catch (err) {
+      console.error("Failed to stop calibration:", err);
+    }
+  };
+
   return {
     devices,
     singerDevice,
     audienceDevice,
     gpuStatus,
+    isCalibrating,
     playTestTone,
     selectSingerDevice,
-    selectAudienceDevice
+    selectAudienceDevice,
+    startCalibration,
+    stopCalibration
   };
 }
 

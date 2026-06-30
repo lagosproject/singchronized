@@ -53,10 +53,16 @@ export const api = {
     singer_volume: singerVolume,
     audience_volume: audienceVolume
   }),
+  setDelay: (delay) => postJson('/api/playback/delay', { delay: parseFloat(delay) }),
 
   // Devices / system
   getDevices: () => request('/api/devices'),
   playTestTone: (deviceId) => request(`/api/devices/${encodeURIComponent(deviceId)}/test-tone`, { method: 'POST' }),
+  startCalibration: (singerDevice, audienceDevice) => postJson('/api/devices/calibration/start', {
+    singer_device: singerDevice,
+    audience_device: audienceDevice
+  }),
+  stopCalibration: () => request('/api/devices/calibration/stop', { method: 'POST' }),
   getGpuStatus: () => request('/api/system/gpu'),
 
   // Playlists

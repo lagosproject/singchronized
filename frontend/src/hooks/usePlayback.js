@@ -14,10 +14,15 @@ export function usePlayback({ songs, fetchSongs }) {
     const v = localStorage.getItem('audienceVolume');
     return v !== null ? parseFloat(v) : 1.0;
   });
+  const [vocalsDelay, setVocalsDelay] = useState(() => {
+    const v = localStorage.getItem('vocalsDelay');
+    return v !== null ? parseInt(v, 10) : 0;
+  });
   const [progressMap, setProgressMap] = useState({});
 
   useEffect(() => {
     api.setVolume(singerVolume, audienceVolume).catch(console.error);
+    api.setDelay(vocalsDelay / 1000).catch(console.error);
   }, []);
 
   const wsRef = useRef(null);
@@ -137,6 +142,16 @@ export function usePlayback({ songs, fetchSongs }) {
     }
   };
 
+  const updateDelay = async (delayMs) => {
+    try {
+      await api.setDelay(delayMs / 1000);
+      setVocalsDelay(delayMs);
+      localStorage.setItem('vocalsDelay', delayMs);
+    } catch (err) {
+      console.error("Failed to update delay:", err);
+    }
+  };
+
   return {
     playback,
     lyrics,
@@ -148,6 +163,8 @@ export function usePlayback({ songs, fetchSongs }) {
     setSingerVolume,
     audienceVolume,
     setAudienceVolume,
+    vocalsDelay,
+    updateDelay,
     progressMap,
     fetchLyrics,
     pause,

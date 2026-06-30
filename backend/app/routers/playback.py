@@ -4,7 +4,7 @@ import os
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from ..audio import player
-from ..schemas import PlayRequest, SeekRequest, VolumeRequest
+from ..schemas import PlayRequest, SeekRequest, VolumeRequest, DelayRequest
 from ..ws import manager
 from .songs import get_song_or_404
 
@@ -67,6 +67,12 @@ def set_playback_volume(req: VolumeRequest):
         "singer_volume": player.singer_volume,
         "audience_volume": player.audience_volume
     }
+
+
+@router.post("/playback/delay")
+def set_playback_delay(req: DelayRequest):
+    player.vocals_delay = req.delay
+    return {"message": "Delay updated", "vocals_delay": player.vocals_delay}
 
 
 @router.websocket("/ws/playback")

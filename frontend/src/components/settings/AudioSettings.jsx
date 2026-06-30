@@ -1,4 +1,5 @@
-import { Headphones, Volume2 } from 'lucide-react';
+import { useEffect } from 'react';
+import { Headphones, Volume2, Play, Square, Activity } from 'lucide-react';
 import { useApp } from '../../context/app-context';
 
 function DeviceRoutingPanel({ icon, label, volumeLabel, device, onDeviceChange, volume, onVolumeChange, onTestTone, accentColor }) {
@@ -54,8 +55,16 @@ function DeviceRoutingPanel({ icon, label, volumeLabel, device, onDeviceChange, 
 
 export default function AudioSettings() {
   const { devices, playback } = useApp();
-  const { singerVolume, setSingerVolume, audienceVolume, setAudienceVolume, updateVolume } = playback;
+  const { singerVolume, setSingerVolume, audienceVolume, setAudienceVolume, updateVolume, vocalsDelay, updateDelay } = playback;
+  const { singerDevice, audienceDevice, isCalibrating, startCalibration, stopCalibration } = devices;
   const hasMultipleOutputs = devices.devices.length > 1;
+
+  // Clean up calibration on unmount
+  useEffect(() => {
+    return () => {
+      stopCalibration();
+    };
+  }, []);
 
   return (
     <>
@@ -103,6 +112,99 @@ export default function AudioSettings() {
           onTestTone={() => devices.playTestTone(devices.audienceDevice)}
           accentColor="var(--primary)"
         />
+
+        {hasMultipleOutputs && (
+          <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Activity size={18} color="var(--secondary)" />
+                <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Device Synchronization (Latency Calibration)</span>
+              </div>
+              <button
+                onClick={() => isCalibrating ? stopCalibration() : startCalibration(singerDevice, audienceDevice)}
+                className="interactive-btn"
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: isCalibrating ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                  border: isCalibrating ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border-color)',
+                  color: isCalibrating ? '#f87171' : 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                {isCalibrating ? <Square size={12} /> : <Play size={12} />}
+                {isCalibrating ? 'Stop Calibration Tone' : 'Start Calibration Tone'}
+              </button>
+            </div>
+
+            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              If singer monitoring (headphones) and audience master (speakers) sound out of sync (e.g. when using Bluetooth or wireless speakers), play the calibration tone and adjust the delay until the notes merge into a single beat.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                <span>Relative Delay (Vocals vs Instrumental)</span>
+                <span style={{ fontWeight: 700, color: vocalsDelay === 0 ? 'var(--text-secondary)' : 'var(--secondary)' }}>
+                  {vocalsDelay === 0 ? '0 ms (Synchronized)' : vocalsDelay > 0 ? `+${vocalsDelay} ms (Vocals Lag)` : `${vocalsDelay} ms (Vocals Lead)`}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <input
+                  type="range"
+                  min="-500"
+                  max="500"
+                  step="5"
+                  value={vocalsDelay}
+                  onChange={(e) => updateDelay(parseInt(e.target.value, 10))}
+                  style={{ flex: 1, accentColor: 'var(--secondary)' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                <button
+                  onClick={() => updateDelay(Math.max(-500, vocalsDelay - 50))}
+                  className="interactive-btn secondary-btn"
+                  style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem' }}
+                >
+                  -50 ms
+                </button>
+                <button
+                  onClick={() => updateDelay(Math.max(-500, vocalsDelay - 10))}
+                  className="interactive-btn secondary-btn"
+                  style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem' }}
+                >
+                  -10 ms
+                </button>
+                <button
+                  onClick={() => updateDelay(0)}
+                  className="interactive-btn secondary-btn"
+                  style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700 }}
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={() => updateDelay(Math.min(500, vocalsDelay + 10))}
+                  className="interactive-btn secondary-btn"
+                  style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem' }}
+                >
+                  +10 ms
+                </button>
+                <button
+                  onClick={() => updateDelay(Math.min(500, vocalsDelay + 50))}
+                  className="interactive-btn secondary-btn"
+                  style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem' }}
+                >
+                  +50 ms
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

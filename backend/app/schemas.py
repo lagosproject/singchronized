@@ -29,3 +29,12 @@ class PlaylistCreateRequest(BaseModel):
 class PlaylistRenameRequest(BaseModel):
     new_name: str
 
+
+class DelayRequest(BaseModel):
+    delay: float
+
+
+class CalibrationStartRequest(BaseModel):
+    singer_device: int | str
+    audience_device: int | str
+
