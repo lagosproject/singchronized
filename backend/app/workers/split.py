@@ -19,9 +19,22 @@ def _demucs_command() -> list:
         # Packaged build: re-invoke our own executable, whose entry point
         # dispatches "demucs" to demucs.separate.main (see backend/server.py).
         return [sys.executable, "demucs"]
-    venv_demucs = os.path.join(PROJECT_ROOT, ".venv", "bin", "demucs")
+        
+    # Check if the current python environment has demucs module installed
+    try:
+        import demucs
+        return [sys.executable, "-m", "demucs"]
+    except ImportError:
+        pass
+        
+    if os.name == 'nt':
+        venv_demucs = os.path.join(PROJECT_ROOT, ".venv", "Scripts", "demucs.exe")
+    else:
+        venv_demucs = os.path.join(PROJECT_ROOT, ".venv", "bin", "demucs")
+        
     if os.path.exists(venv_demucs):
         return [venv_demucs]
+        
     return ["demucs"]  # fallback to system path
 
 

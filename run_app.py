@@ -39,9 +39,25 @@ def main():
         
     # Start backend server
     print(f"Starting FastAPI Backend server at http://localhost:{target_port} ...")
-    venv_python = os.path.join(root_dir, ".venv", "bin", "python")
-    if not os.path.exists(venv_python):
-        venv_python = "python" # fallback
+    
+    # Try current Python interpreter first if it has uvicorn
+    use_current = False
+    try:
+        import uvicorn
+        use_current = True
+    except ImportError:
+        pass
+        
+    if use_current:
+        venv_python = sys.executable
+    else:
+        if os.name == 'nt':
+            venv_python = os.path.join(root_dir, ".venv", "Scripts", "python.exe")
+        else:
+            venv_python = os.path.join(root_dir, ".venv", "bin", "python")
+            
+        if not os.path.exists(venv_python):
+            venv_python = "python" # fallback
         
     cmd = [
         venv_python,

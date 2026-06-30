@@ -29,7 +29,7 @@ def init_db():
         )
     """)
     # Handle backward compatibility/migration for existing DB
-    for column in ("split_error", "lyrics_error"):
+    for column in ("split_error", "lyrics_error", "lyrics_model"):
         try:
             cursor.execute(f"ALTER TABLE songs ADD COLUMN {column} TEXT")
         except sqlite3.OperationalError:
@@ -81,7 +81,7 @@ def get_song(song_id: int):
 
 
 def update_song_status(song_id: int, split_status: str = None, lyrics_status: str = None,
-                       split_error: str = None, lyrics_error: str = None):
+                       split_error: str = None, lyrics_error: str = None, lyrics_model: str = None):
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -107,6 +107,10 @@ def update_song_status(song_id: int, split_status: str = None, lyrics_status: st
         params.append(lyrics_error)
     elif lyrics_status in ('PENDING', 'PROCESSING', 'COMPLETED'):
         updates.append("lyrics_error = NULL")
+
+    if lyrics_model is not None:
+        updates.append("lyrics_model = ?")
+        params.append(lyrics_model)
 
     if updates:
         params.append(song_id)

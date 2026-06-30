@@ -13,7 +13,7 @@ def format_lrc_timestamp(seconds: float) -> str:
 def run_whisper_transcription(song_id: int, audio_path: str, output_lrc_path: str, model_size: str = "base"):
     """Transcribe audio into a synced .lrc file using faster-whisper."""
     try:
-        database.update_song_status(song_id, lyrics_status="PROCESSING")
+        database.update_song_status(song_id, lyrics_status="PROCESSING", lyrics_model=model_size)
 
         # Import inside the function to keep memory light until run
         from faster_whisper import WhisperModel
@@ -40,9 +40,9 @@ def run_whisper_transcription(song_id: int, audio_path: str, output_lrc_path: st
                 f.write(line + "\n")
 
         database.update_song_paths(song_id, lyrics_path=output_lrc_path)
-        database.update_song_status(song_id, lyrics_status="COMPLETED")
+        database.update_song_status(song_id, lyrics_status="COMPLETED", lyrics_model=model_size)
         print(f"Whisper transcription completed for song {song_id}")
 
     except Exception as e:
         print(f"Error transcribing song {song_id}: {e}")
-        database.update_song_status(song_id, lyrics_status="FAILED", lyrics_error=str(e))
+        database.update_song_status(song_id, lyrics_status="FAILED", lyrics_error=str(e), lyrics_model=model_size)
