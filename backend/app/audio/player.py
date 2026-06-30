@@ -153,9 +153,9 @@ class CalibrationStreamCallback:
 
         shift = 0
         delay = int(round(getattr(self.player, "vocals_delay", 0.0) * 44100))
-        if self.is_singer and delay > 0:
+        if not self.is_singer and delay > 0:
             shift = delay
-        elif not self.is_singer and delay < 0:
+        elif self.is_singer and delay < 0:
             shift = -delay
 
         t_shifted = t - shift
@@ -233,8 +233,8 @@ class KaraokePlayer:
         single_device_mode = singer_device == audience_device
         
         vocals_delay = getattr(self, "vocals_delay", 0.0)
-        t1_delay = vocals_delay if vocals_delay > 0 else 0.0
-        t2_delay = -vocals_delay if vocals_delay < 0 else 0.0
+        t1_delay = -vocals_delay if vocals_delay < 0 else 0.0
+        t2_delay = vocals_delay if vocals_delay > 0 else 0.0
 
         if single_device_mode:
             # One output: skip vocals to avoid mixing both stems into the same
