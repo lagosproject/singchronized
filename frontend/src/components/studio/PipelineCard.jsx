@@ -22,6 +22,9 @@ function StatusBadge({ status, labels, progress = 0 }) {
       </span>
     );
   }
+  if (status === 'FAILED') {
+    return <span className="badge badge-failed" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>{labels.failed}</span>;
+  }
   return <span className="badge badge-pending" style={{ fontSize: '0.65rem', padding: '2px 6px' }}>{labels.pending}</span>;
 }
 
@@ -49,7 +52,8 @@ export default function PipelineCard({ song }) {
               labels={{ 
                 completed: t("ready"), 
                 processing: splitProgress > 0 ? `${t("processing")} ${splitProgress}%` : t("processing"), 
-                pending: t("pending") 
+                pending: t("pending"),
+                failed: t("failed")
               }} 
             />
           </div>
@@ -63,7 +67,8 @@ export default function PipelineCard({ song }) {
                 processing: song.lyrics_model 
                   ? (lyricsProgress > 0 ? t("syncingModelProgress", { model: song.lyrics_model, progress: lyricsProgress }) : t("syncingModel", { model: song.lyrics_model })) 
                   : t("syncing"), 
-                pending: t("noLyrics") 
+                pending: t("noLyrics"),
+                failed: t("failed")
               }} 
             />
           </div>

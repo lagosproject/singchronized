@@ -63,6 +63,9 @@ backend/library.db-journal
 *.db
 *.sqlite
 
+# Downloaded GPU pack (dev-mode DATA_DIR; see backend/app/services/gpu_pack.py)
+backend/gpu-backend/
+
 # 6. IDEs & Editors
 # ------------------
 .idea/

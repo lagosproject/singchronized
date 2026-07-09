@@ -4,10 +4,15 @@ async function request(path, options = {}) {
   const res = await fetch(`${getApiBase()}${path}`, options);
   if (!res.ok) {
     let detail;
+    let body;
     try {
-      detail = (await res.json()).detail;
+      body = await res.json();
+      detail = body.detail;
     } catch {
       detail = res.statusText;
+    }
+    if (body && body.traceback) {
+      console.error("Server traceback:\n", body.traceback);
     }
     throw new Error(detail || `Request failed: ${res.status}`);
   }
@@ -64,6 +69,8 @@ export const api = {
   }),
   stopCalibration: () => request('/api/devices/calibration/stop', { method: 'POST' }),
   getGpuStatus: () => request('/api/system/gpu'),
+  installGpuPack: () => request('/api/system/gpu/install', { method: 'POST' }),
+  uninstallGpuPack: () => request('/api/system/gpu/pack', { method: 'DELETE' }),
 
   // Playlists
   getPlaylists: () => request('/api/playlists'),

@@ -1,11 +1,21 @@
-import { AlertTriangle, Cpu } from 'lucide-react';
+import { useEffect } from 'react';
+import { AlertTriangle, Cpu, Download, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/app-context';
 import { WHISPER_MODEL_SPECS, WHISPER_MODEL_SIZES } from '../../constants';
 import { t } from '../../i18n';
 
 export default function AISettings() {
-  const { devices, modelSize, setModelSize } = useApp();
-  const { gpuStatus } = devices;
+  const { devices, playback, modelSize, setModelSize } = useApp();
+  const { gpuStatus, installGpuPack, uninstallGpuPack, refreshGpuStatus } = devices;
+  const { gpuPackProgress } = playback;
+
+  useEffect(() => {
+    if (gpuPackProgress && (gpuPackProgress.stage === 'completed' || gpuPackProgress.stage === 'failed')) {
+      refreshGpuStatus();
+    }
+  }, [gpuPackProgress, refreshGpuStatus]);
+
+  const isInstalling = gpuPackProgress && ['downloading', 'verifying', 'extracting'].includes(gpuPackProgress.stage);
 
   return (
     <>
@@ -86,34 +96,79 @@ export default function AISettings() {
         <div className="glass-panel" style={{
           padding: '16px',
           borderRadius: '12px',
-          background: gpuStatus.has_gpu ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
-          border: `1px solid ${gpuStatus.has_gpu ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
+          background: gpuStatus.gpu_active ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+          border: `1px solid ${gpuStatus.gpu_active ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
           display: 'flex',
           alignItems: 'center',
           gap: '16px'
         }}>
           <div style={{
-            background: gpuStatus.has_gpu ? 'var(--success)' : 'var(--warning)',
+            background: gpuStatus.gpu_active ? 'var(--success)' : 'var(--warning)',
             width: '40px',
             height: '40px',
             borderRadius: '8px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: `0 4px 12px ${gpuStatus.has_gpu ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`,
+            boxShadow: `0 4px 12px ${gpuStatus.gpu_active ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`,
             flexShrink: 0
           }}>
             <Cpu size={20} color="white" />
           </div>
           <div style={{ flex: 1 }}>
             <h4 style={{ margin: '0 0 2px 0', fontSize: '0.95rem', fontWeight: 700, color: 'white' }}>
-              {gpuStatus.has_gpu ? t("gpuAccelerationEnabled") : t("cpuModeEnabled")}
+              {gpuStatus.gpu_active
+                ? t("gpuAccelerationEnabled")
+                : gpuStatus.has_nvidia_gpu
+                  ? t("gpuDetectedNotInstalled")
+                  : t("cpuModeEnabled")}
             </h4>
             <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              {gpuStatus.has_gpu
+              {gpuStatus.gpu_active
                 ? t("gpuEnabledDesc", { gpuName: gpuStatus.gpu_name || 'Generic GPU' })
-                : t("cpuEnabledDesc")}
+                : gpuStatus.has_nvidia_gpu
+                  ? t("gpuDetectedDesc", { gpuName: gpuStatus.gpu_name || 'Generic GPU' })
+                  : t("cpuEnabledDesc")}
             </p>
+
+            {gpuStatus.has_nvidia_gpu && isInstalling && (
+              <div style={{ marginTop: '10px' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                  {gpuPackProgress.stage === 'downloading' && t("gpuPackDownloading", { percent: gpuPackProgress.percent })}
+                  {gpuPackProgress.stage === 'verifying' && t("gpuPackVerifying")}
+                  {gpuPackProgress.stage === 'extracting' && t("gpuPackExtracting")}
+                </div>
+                <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${gpuPackProgress.stage === 'downloading' ? gpuPackProgress.percent : 100}%`,
+                    background: 'var(--primary)',
+                    transition: 'width 0.2s ease'
+                  }} />
+                </div>
+              </div>
+            )}
+
+            {gpuStatus.has_nvidia_gpu && !gpuStatus.gpu_pack_installed && !isInstalling && (
+              <div style={{ marginTop: '10px' }}>
+                <button onClick={installGpuPack} className="interactive-btn" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
+                  <Download size={14} />
+                  {gpuPackProgress?.stage === 'failed' ? t("retry") : t("enableGpuAcceleration")}
+                </button>
+                {gpuPackProgress?.stage === 'failed' && (
+                  <p style={{ margin: '6px 0 0 0', fontSize: '0.75rem', color: 'var(--warning)' }}>
+                    {t("gpuPackFailed", { error: gpuPackProgress.error || '' })}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {gpuStatus.gpu_pack_installed && (
+              <button onClick={uninstallGpuPack} className="interactive-btn secondary-btn" style={{ marginTop: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
+                <Trash2 size={14} />
+                {t("removeGpuPack")}
+              </button>
+            )}
           </div>
         </div>
       </div>

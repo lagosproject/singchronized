@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 
 from . import database
 from .audio import player
@@ -48,6 +49,19 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(api_router)
+
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request, exc):
+        import traceback
+        import sys
+        traceback.print_exception(type(exc), exc, exc.__traceback__, file=sys.stderr)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": f"Internal Server Error: {str(exc)}",
+                "traceback": traceback.format_exc()
+            }
+        )
 
     # Serve library static files (for thumbnails)
     app.mount("/library", StaticFiles(directory=LIBRARY_DIR), name="library")

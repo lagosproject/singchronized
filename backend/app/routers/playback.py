@@ -1,7 +1,7 @@
 import json
 import os
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 
 from ..audio import player
 from ..schemas import PlayRequest, SeekRequest, VolumeRequest, DelayRequest
@@ -19,13 +19,20 @@ def play_song(req: PlayRequest):
     vocals = song["vocals_path"] if (song["vocals_path"] and os.path.exists(song["vocals_path"])) else song["original_path"]
     instrumental = song["instrumental_path"] if (song["instrumental_path"] and os.path.exists(song["instrumental_path"])) else None
 
-    player.start_song(
-        song_path=vocals,
-        karaoke_path=instrumental,
-        singer_device=req.singer_device,
-        audience_device=req.audience_device
-    )
-    player.current_song_id = req.song_id
+    try:
+        player.start_song(
+            song_path=vocals,
+            karaoke_path=instrumental,
+            singer_device=req.singer_device,
+            audience_device=req.audience_device
+        )
+        player.current_song_id = req.song_id
+    except Exception as e:
+        import traceback
+        import sys
+        print("Failed to start song playback:", file=sys.stderr)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to start song playback: {str(e)}")
 
     return {"message": "Playback started", "status": player.get_status()}
 

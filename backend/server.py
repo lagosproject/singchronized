@@ -14,6 +14,17 @@ import sys
 def main():
     multiprocessing.freeze_support()
 
+    import os
+    if getattr(sys, "frozen", False):
+        from backend.app.config import _user_data_dir
+        log_dir = _user_data_dir()
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, "backend.log")
+        f = open(log_file, "a", encoding="utf-8", buffering=1)
+        sys.stdout = f
+        sys.stderr = f
+        print(f"\n--- Backend started (sys.argv={sys.argv}) ---", flush=True)
+
     if len(sys.argv) > 1 and sys.argv[1] == "demucs":
         # torchaudio.save in newer versions tries torchcodec first, which requires
         # CUDA libraries not present in a CPU-only build. Patch it to use soundfile
@@ -29,6 +40,20 @@ def main():
 
         from demucs.separate import main as demucs_main
         demucs_main(sys.argv[2:])
+        return
+
+    if len(sys.argv) > 1 and sys.argv[1] == "transcribe":
+        # audio_path, output_lrc_path, model_size — re-invoked either by the
+        # bundled CPU backend or a downloaded GPU pack (see
+        # backend/app/workers/backend_select.py); progress lines are parsed
+        # by backend/app/workers/subprocess_utils.py the same way demucs's are.
+        audio_path, output_lrc_path, model_size = sys.argv[2], sys.argv[3], sys.argv[4]
+        from backend.app.workers.transcribe_core import transcribe_to_lrc
+
+        def _print_progress(percent):
+            print(f"{percent}%", flush=True)
+
+        transcribe_to_lrc(audio_path, output_lrc_path, model_size, progress_callback=_print_progress)
         return
 
     import argparse

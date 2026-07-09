@@ -1,66 +1,16 @@
 import os
-import re
 import shutil
 import subprocess
-import sys
 
 from .. import database
-from ..config import IS_FROZEN, PROJECT_ROOT
+from .backend_select import resolve_backend_command
+from .subprocess_utils import stream_progress
 
 try:
     import certifi
     _CERTIFI_BUNDLE = certifi.where()
 except ImportError:
     _CERTIFI_BUNDLE = None
-
-
-def _demucs_command() -> list:
-    if IS_FROZEN:
-        # Packaged build: re-invoke our own executable, whose entry point
-        # dispatches "demucs" to demucs.separate.main (see backend/server.py).
-        return [sys.executable, "demucs"]
-        
-    # Check if the current python environment has demucs module installed
-    try:
-        import demucs
-        return [sys.executable, "-m", "demucs"]
-    except ImportError:
-        pass
-        
-    if os.name == 'nt':
-        venv_demucs = os.path.join(PROJECT_ROOT, ".venv", "Scripts", "demucs.exe")
-    else:
-        venv_demucs = os.path.join(PROJECT_ROOT, ".venv", "bin", "demucs")
-        
-    if os.path.exists(venv_demucs):
-        return [venv_demucs]
-        
-    return ["demucs"]  # fallback to system path
-
-
-def _stream_progress(process, song_id, progress_callback):
-    """Parse percentages from Demucs/tqdm output and log all lines."""
-    percent_re = re.compile(r'(\d+)%')
-    buffer = []
-
-    def flush():
-        if buffer:
-            line = "".join(buffer)
-            print(f"[Demucs Song {song_id}]: {line}")
-            match = percent_re.search(line)
-            if match and progress_callback:
-                progress_callback(int(match.group(1)))
-            buffer.clear()
-
-    while True:
-        char = process.stdout.read(1)
-        if not char:
-            flush()
-            break
-        if char in ('\r', '\n'):
-            flush()
-        else:
-            buffer.append(char)
 
 
 def _locate_output_tracks(output_dir: str, filename_no_ext: str):
@@ -89,7 +39,7 @@ def run_demucs_separation(song_id: int, original_path: str, output_dir: str, pro
         os.makedirs(output_dir, exist_ok=True)
 
         cmd = [
-            *_demucs_command(),
+            *resolve_backend_command("demucs"),
             "--two-stems=vocals",
             "-o", output_dir,
             original_path
@@ -110,7 +60,7 @@ def run_demucs_separation(song_id: int, original_path: str, output_dir: str, pro
             env=env,
         )
 
-        _stream_progress(process, song_id, progress_callback)
+        stream_progress(process, f"Demucs Song {song_id}", progress_callback)
 
         process.wait()
         if process.returncode != 0:
@@ -134,6 +84,8 @@ def run_demucs_separation(song_id: int, original_path: str, output_dir: str, pro
         print(f"Demucs separation complete for song {song_id}")
 
     except Exception as e:
-        print(f"Error splitting song {song_id}: {e}")
-        database.update_song_status(song_id, split_status="FAILED", split_error=str(e))
+        import traceback
+        print(f"Error splitting song {song_id}:")
+        traceback.print_exc()
+        database.update_song_status(song_id, split_status="FAILED", split_error=traceback.format_exc())
         raise

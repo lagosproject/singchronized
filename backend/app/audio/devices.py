@@ -169,7 +169,9 @@ def get_devices():
                 time.sleep(0.2)  # Give driver time to settle
                 sd._initialize()
             except Exception as e:
-                print(f"Error refreshing PortAudio devices: {e}")
+                import traceback
+                print(f"Error refreshing PortAudio devices:")
+                traceback.print_exc()
 
         devices = sd.query_devices()
 
@@ -208,7 +210,9 @@ def play_test_tone(device_id):
                 time.sleep(0.2)  # Give driver time to settle
                 sd._initialize()
             except Exception as e:
-                print(f"Error refreshing PortAudio devices before test tone: {e}")
+                import traceback
+                print(f"Error refreshing PortAudio devices before test tone:")
+                traceback.print_exc()
 
     try:
         with open_target(device_id) as pa_device:
@@ -232,6 +236,8 @@ def play_test_tone(device_id):
             # is still set, so the tone reaches the selected sink
             sd.play(tone, samplerate=samplerate, device=pa_device)
     except Exception as e:
-        print(f"Error playing test tone on device {device_id}: {e}")
+        import traceback
+        print(f"Error playing test tone on device {device_id}:")
+        traceback.print_exc()
         raise
 

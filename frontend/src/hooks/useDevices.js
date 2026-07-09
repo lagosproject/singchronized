@@ -38,7 +38,7 @@ export function useDevices() {
   const [devices, setDevices] = useState([]);
   const [singerDevice, setSingerDevice] = useState(null);
   const [audienceDevice, setAudienceDevice] = useState(null);
-  const [gpuStatus, setGpuStatus] = useState({ has_gpu: false, gpu_name: null });
+  const [gpuStatus, setGpuStatus] = useState({ has_nvidia_gpu: false, gpu_name: null, gpu_pack_installed: false, gpu_active: false });
   const [isCalibrating, setIsCalibrating] = useState(false);
 
   const applyDevices = useCallback((data) => {
@@ -53,6 +53,29 @@ export function useDevices() {
       .then(applyDevices)
       .catch(err => console.error("Failed to fetch devices:", err));
   }, [applyDevices]);
+
+  const refreshGpuStatus = useCallback(() => {
+    api.getGpuStatus()
+      .then(setGpuStatus)
+      .catch(err => console.error("Failed to fetch GPU status:", err));
+  }, []);
+
+  const installGpuPack = async () => {
+    try {
+      await api.installGpuPack();
+    } catch (err) {
+      console.error("Failed to start GPU pack install:", err);
+    }
+  };
+
+  const uninstallGpuPack = async () => {
+    try {
+      await api.uninstallGpuPack();
+      refreshGpuStatus();
+    } catch (err) {
+      console.error("Failed to remove GPU pack:", err);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -136,6 +159,9 @@ export function useDevices() {
     singerDevice,
     audienceDevice,
     gpuStatus,
+    refreshGpuStatus,
+    installGpuPack,
+    uninstallGpuPack,
     isCalibrating,
     playTestTone,
     selectSingerDevice,

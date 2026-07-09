@@ -20,6 +20,7 @@ export function usePlayback({ songs, fetchSongs }) {
     return v !== null ? parseInt(v, 10) : 0;
   });
   const [progressMap, setProgressMap] = useState({});
+  const [gpuPackProgress, setGpuPackProgress] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -82,6 +83,8 @@ export function usePlayback({ songs, fetchSongs }) {
           if (status === 'COMPLETED' || status === 'FAILED') {
             fetchSongsRef.current();
           }
+        } else if (msg.type === 'gpu_pack_status') {
+          setGpuPackProgress(msg.data);
         }
       };
       ws.onclose = () => {
@@ -178,6 +181,7 @@ export function usePlayback({ songs, fetchSongs }) {
     vocalsDelay,
     updateDelay,
     progressMap,
+    gpuPackProgress,
     fetchLyrics,
     pause,
     resume,

@@ -29,13 +29,17 @@ def _run_split(song_id: int):
         return
     song_folder = os.path.dirname(song["original_path"])
     report_progress(song_id, "split", 0, "PROCESSING")
-    run_demucs_separation(
-        song_id,
-        song["original_path"],
-        song_folder,
-        progress_callback=lambda percent: report_progress(song_id, "split", percent, "PROCESSING")
-    )
-    report_progress(song_id, "split", 100, "COMPLETED")
+    try:
+        run_demucs_separation(
+            song_id,
+            song["original_path"],
+            song_folder,
+            progress_callback=lambda percent: report_progress(song_id, "split", percent, "PROCESSING")
+        )
+        report_progress(song_id, "split", 100, "COMPLETED")
+    except Exception as e:
+        report_progress(song_id, "split", 0, "FAILED")
+        raise
 
 
 def _run_lyrics(song_id: int, model_size: str):
@@ -49,8 +53,18 @@ def _run_lyrics(song_id: int, model_size: str):
     output_lrc = os.path.join(os.path.dirname(song["original_path"]), "lyrics.lrc")
 
     report_progress(song_id, "lyrics", 20, "PROCESSING")
-    run_whisper_transcription(song_id, audio_path, output_lrc, model_size)
-    report_progress(song_id, "lyrics", 100, "COMPLETED")
+    try:
+        run_whisper_transcription(
+            song_id,
+            audio_path,
+            output_lrc,
+            model_size,
+            progress_callback=lambda percent: report_progress(song_id, "lyrics", percent, "PROCESSING")
+        )
+        report_progress(song_id, "lyrics", 100, "COMPLETED")
+    except Exception as e:
+        report_progress(song_id, "lyrics", 0, "FAILED")
+        raise
 
 
 def _process_tasks():
@@ -68,7 +82,9 @@ def _process_tasks():
 
             _task_queue.task_done()
         except Exception as e:
-            print(f"Error in task worker: {e}")
+            import traceback
+            print(f"Error in task worker:")
+            traceback.print_exc()
 
 
 def _ensure_worker():
