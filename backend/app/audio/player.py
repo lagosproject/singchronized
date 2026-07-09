@@ -10,6 +10,23 @@ from ..config import BLOCKSIZE, BUFFERSIZE
 from .devices import open_target, pipewire_available
 
 
+def resample_audio(data, orig_sr, target_sr):
+    if orig_sr == target_sr:
+        return data
+    num_samples = int(round(len(data) * target_sr / orig_sr))
+    x_orig = np.arange(len(data)) / orig_sr
+    x_target = np.arange(num_samples) / target_sr
+
+    if len(data.shape) > 1:
+        channels = data.shape[1]
+        new_data = np.zeros((num_samples, channels), dtype=np.float32)
+        for c in range(channels):
+            new_data[:, c] = np.interp(x_target, x_orig, data[:, c])
+        return new_data
+    else:
+        return np.interp(x_target, x_orig, data).astype(np.float32)
+
+
 class AudioStreamThread:
     def __init__(self, filepath, device_id, volume=1.0, delay_seconds=0.0, is_vocals=False, player=None):
         self.filepath = filepath
@@ -32,6 +49,18 @@ class AudioStreamThread:
         
         self.seek_target_frame = None
 
+        # --- Glitch diagnostics (temporary) ---
+        # Distinguishes two very different causes of audible stutter:
+        # (1) our own position math skipping/repeating frames unexpectedly,
+        # vs (2) PortAudio itself reporting a missed real-time deadline
+        # (output_underflow/overflow), which points at system/driver/CPU
+        # scheduling rather than a code bug. Rate-limited so logging can't
+        # itself become a source of audio-thread jitter.
+        self._expected_start_idx = None
+        self._prev_delay = None
+        self._prev_seek_time = None
+        self._last_glitch_log = 0.0
+
     def start(self):
         try:
             with sf.SoundFile(self.filepath) as f:
@@ -43,6 +72,25 @@ class AudioStreamThread:
             print(f"Error loading audio file: {e}")
             self.is_finished = True
             return
+
+        with open_target(self.device_id) as pa_device:
+            # Query device info to get native default sample rate
+            try:
+                if pa_device is None:
+                    device_info = sd.query_devices(kind='output')
+                else:
+                    device_info = sd.query_devices(pa_device, 'output')
+                target_samplerate = int(device_info.get('default_samplerate', 44100))
+            except Exception:
+                target_samplerate = self.samplerate
+
+        # Resampling is CPU-bound and doesn't need PIPEWIRE_NODE set, so it
+        # runs outside open_target to keep that critical section short.
+        if self.samplerate != target_samplerate:
+            print(f"Resampling audio stream from {self.samplerate}Hz to {target_samplerate}Hz")
+            self.audio_data = resample_audio(self.audio_data, self.samplerate, target_samplerate)
+            self.samplerate = target_samplerate
+            self.total_frames = len(self.audio_data)
 
         with open_target(self.device_id) as pa_device:
             self.stream = sd.OutputStream(
@@ -85,23 +133,29 @@ class AudioStreamThread:
         if self.seek_target_frame is not None:
             self.current_frame = self.seek_target_frame
             self.seek_target_frame = None
+            self._expected_start_idx = None
             if self.player:
-                self.player.start_time_dac = 0.0
+                self.player.start_time_system = 0.0
 
         if self.is_paused:
             outdata.fill(0)
             return
 
-        # Initialize shared start time
-        t_dac = time_info.outputBufferDacTime
-        if self.player and getattr(self.player, "start_time_dac", 0.0) == 0.0:
-            self.player.start_time_dac = t_dac
+        # Initialize shared start time using system-wide monotonic clock
+        now = time.perf_counter()
+        if self.player and getattr(self.player, "start_time_system", 0.0) == 0.0:
+            self.player.start_time_system = now
 
-        # Calculate time elapsed
+        # Calculate time elapsed in seconds
         elapsed = 0.0
-        if self.player and self.player.start_time_dac > 0.0:
-            elapsed = t_dac - self.player.start_time_dac
-            elapsed -= getattr(self.player, "pause_duration_dac", 0.0)
+        if self.player and self.player.start_time_system > 0.0:
+            elapsed = now - self.player.start_time_system
+            elapsed -= getattr(self.player, "pause_duration_system", 0.0)
+
+        # Adjust for stream latency (DacTime vs currentTime) to keep timing exact
+        latency = time_info.outputBufferDacTime - time_info.currentTime
+        if latency > 0:
+            elapsed += latency
 
         # Determine delay dynamically
         delay = 0.0
@@ -117,6 +171,8 @@ class AudioStreamThread:
         seek_time = getattr(self.player, "seek_time", 0.0) if self.player else 0.0
         current_time = seek_time + elapsed - delay
         start_idx = int(round(current_time * self.samplerate))
+
+        self._check_glitch(start_idx, frames, delay, seek_time, status)
 
         if start_idx < 0:
             silence_len = min(frames, -start_idx)
@@ -142,6 +198,38 @@ class AudioStreamThread:
                 if len(data) < frames:
                     outdata[len(data):].fill(0)
                     self.is_finished = True
+
+    def _check_glitch(self, start_idx, frames, delay, seek_time, status):
+        label = "vocals" if self.is_vocals else "instrumental"
+
+        delay_changed = self._prev_delay is not None and self._prev_delay != delay
+        seek_time_changed = self._prev_seek_time is not None and self._prev_seek_time != seek_time
+        if (self._expected_start_idx is not None
+                and start_idx != self._expected_start_idx
+                and not delay_changed and not seek_time_changed):
+            now = time.perf_counter()
+            if now - self._last_glitch_log > 1.0:
+                gap = start_idx - self._expected_start_idx
+                print(
+                    f"[audio-glitch] {label}: unexpected position jump of {gap:+d} frames "
+                    f"({gap / self.samplerate * 1000:+.1f} ms) with no delay/seek change "
+                    f"-> logic bug in position tracking"
+                )
+                self._last_glitch_log = now
+
+        if status.output_underflow or status.output_overflow:
+            now = time.perf_counter()
+            if now - self._last_glitch_log > 1.0:
+                print(
+                    f"[audio-glitch] {label}: PortAudio underflow={bool(status.output_underflow)} "
+                    f"overflow={bool(status.output_overflow)} "
+                    f"-> real-time deadline missed (driver/CPU/host-API side, not app logic)"
+                )
+                self._last_glitch_log = now
+
+        self._prev_delay = delay
+        self._prev_seek_time = seek_time
+        self._expected_start_idx = start_idx + frames
 
 
 class CalibrationStreamCallback:
@@ -202,6 +290,7 @@ class KaraokePlayer:
         self.singer_device = None
         self.audience_device = None
         self.is_playing = False
+        self.is_starting = False
         self.is_paused = False
         self.current_song_id = None
         self.start_time = 0
@@ -234,6 +323,12 @@ class KaraokePlayer:
 
         self.stop_song()
 
+        # Set before any stream is opened so devices.py's idle check (which
+        # reads is_playing/is_starting to decide whether it's safe to
+        # terminate/reinitialize PortAudio) never sees a false "idle" window
+        # while these streams are being opened.
+        self.is_starting = True
+
         self.singer_device = singer_device
         self.audience_device = audience_device
 
@@ -246,6 +341,9 @@ class KaraokePlayer:
         self.start_time_dac = 0.0
         self.pause_duration_dac = 0.0
         self.pause_start_time_dac = 0.0
+        self.start_time_system = 0.0
+        self.pause_duration_system = 0.0
+        self.pause_start_time_system = 0.0
         self.seek_time = 0.0
 
         if single_device_mode:
@@ -258,13 +356,18 @@ class KaraokePlayer:
             self.thread1 = AudioStreamThread(song_path, singer_device, volume=self.singer_volume, delay_seconds=t1_delay, is_vocals=True, player=self) if song_path else None
             self.thread2 = AudioStreamThread(karaoke_path, audience_device, volume=self.audience_volume, delay_seconds=t2_delay, is_vocals=False, player=self) if karaoke_path else None
 
-        if self.thread1:
-            self.thread1.start()
-        if self.thread2:
-            self.thread2.start()
+        try:
+            if self.thread1:
+                self.thread1.start()
+            if self.thread2:
+                self.thread2.start()
+        except Exception:
+            self.stop_song()
+            raise
 
         self.is_playing = True
         self.is_paused = False
+        self.is_starting = False
 
     def pause_song(self):
         if not self.is_playing or self.is_paused:
@@ -275,6 +378,7 @@ class KaraokePlayer:
             self.thread2.pause()
         self.is_paused = True
         self.pause_start_time_dac = sd.get_time()
+        self.pause_start_time_system = time.perf_counter()
 
     def resume_song(self):
         if not self.is_playing or not self.is_paused:
@@ -285,6 +389,7 @@ class KaraokePlayer:
             self.thread2.resume()
         self.is_paused = False
         self.pause_duration_dac += sd.get_time() - self.pause_start_time_dac
+        self.pause_duration_system += time.perf_counter() - self.pause_start_time_system
 
     def stop_song(self):
         if getattr(self, "calibration_active", False):
@@ -297,10 +402,13 @@ class KaraokePlayer:
             self.thread2.finish()
             self.thread2 = None
         self.is_playing = False
+        self.is_starting = False
         self.is_paused = False
         self.current_song_id = None
         self.start_time_dac = 0.0
         self.pause_duration_dac = 0.0
+        self.start_time_system = 0.0
+        self.pause_duration_system = 0.0
         self.seek_time = 0.0
 
     def set_volumes(self, singer_volume, audience_volume):
@@ -330,6 +438,8 @@ class KaraokePlayer:
         self.seek_time = position_seconds
         self.start_time_dac = 0.0
         self.pause_duration_dac = 0.0
+        self.start_time_system = 0.0
+        self.pause_duration_system = 0.0
 
         if self.thread1 and self.thread1.is_alive():
             vocals_pos = position_seconds
@@ -449,6 +559,7 @@ class KaraokePlayer:
                     pass
                 print(f"Error starting calibration streams: {e}")
                 self.calibration_active = False
+                raise
 
     def stop_calibration(self):
         self.calibration_active = False

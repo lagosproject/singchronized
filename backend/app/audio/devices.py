@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import threading
+import time
 from contextlib import contextmanager
 
 import numpy as np
@@ -22,6 +23,7 @@ PW_PREFIX = "pw:"
 _route_lock = threading.Lock()
 
 
+_last_test_tone_time = 0.0
 _pipewire_available = None
 
 
@@ -152,7 +154,25 @@ def get_devices():
             "max_output_channels": 2,
         } for sink in sinks]
 
-    devices = sd.query_devices()
+    # Re-initialize PortAudio to get an updated list of devices if idle.
+    # The whole check-and-reinit sequence is serialized through _route_lock so
+    # two concurrent requests can't both decide to terminate/reinitialize at
+    # once, and is_starting/is_playing/calibration_active must all be false
+    # so we never tear down PortAudio while a stream is being opened elsewhere.
+    from .player import player
+    with _route_lock:
+        is_tone_playing = (time.time() - _last_test_tone_time) < 0.8
+        if (not player.is_playing and not getattr(player, "is_starting", False)
+                and not getattr(player, "calibration_active", False) and not is_tone_playing):
+            try:
+                sd._terminate()
+                time.sleep(0.2)  # Give driver time to settle
+                sd._initialize()
+            except Exception as e:
+                print(f"Error refreshing PortAudio devices: {e}")
+
+        devices = sd.query_devices()
+
     result = []
     for idx, device in enumerate(devices):
         # We look for output devices
@@ -170,22 +190,48 @@ def get_devices():
 
 
 def play_test_tone(device_id):
-    samplerate = 44100
-    duration = 0.5
-    frequency = 440.0
-    t = np.linspace(0, duration, int(samplerate * duration), endpoint=False)
-    tone = 0.5 * np.sin(2 * np.pi * frequency * t)
-    tone = np.column_stack([tone, tone])
+    global _last_test_tone_time
+
+    # Re-initialize PortAudio if idle to ensure we use the correct index.
+    # Guarded by _route_lock (released before open_target, which acquires
+    # the same lock for pw: routing) so this never races another caller's
+    # terminate/reinit or a stream being opened elsewhere.
+    from .player import player
+    with _route_lock:
+        now = time.time()
+        is_tone_playing = (now - _last_test_tone_time) < 0.8
+        _last_test_tone_time = now
+        if (not player.is_playing and not getattr(player, "is_starting", False)
+                and not getattr(player, "calibration_active", False) and not is_tone_playing):
+            try:
+                sd._terminate()
+                time.sleep(0.2)  # Give driver time to settle
+                sd._initialize()
+            except Exception as e:
+                print(f"Error refreshing PortAudio devices before test tone: {e}")
 
     try:
         with open_target(device_id) as pa_device:
             if isinstance(pa_device, int):
                 device_info = sd.query_devices(pa_device)
                 max_channels = device_info.get('max_output_channels', 2)
-                if max_channels == 1:
-                    tone = tone[:, :1]
+                samplerate = int(device_info.get('default_samplerate', 44100))
+            else:
+                max_channels = 2
+                samplerate = 44100
+
+            duration = 0.5
+            frequency = 440.0
+            t = np.linspace(0, duration, int(samplerate * duration), endpoint=False)
+            tone = 0.5 * np.sin(2 * np.pi * frequency * t)
+            tone = np.column_stack([tone, tone])
+            if max_channels == 1:
+                tone = tone[:, :1]
+
             # sd.play opens the stream before returning, while PIPEWIRE_NODE
             # is still set, so the tone reaches the selected sink
             sd.play(tone, samplerate=samplerate, device=pa_device)
     except Exception as e:
         print(f"Error playing test tone on device {device_id}: {e}")
+        raise
+

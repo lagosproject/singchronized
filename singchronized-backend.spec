@@ -10,7 +10,7 @@ hiddenimports = []
 
 # Packages with non-Python assets or dynamic imports the analyzer misses:
 # demucs ships remote model yaml files, faster_whisper ships VAD assets.
-for pkg in ("demucs", "faster_whisper", "numpy"):
+for pkg in ("demucs", "faster_whisper", "numpy", "sounddevice", "soundfile"):
     d, b, h = collect_all(pkg)
     datas += d
     binaries += b

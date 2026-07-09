@@ -1,11 +1,12 @@
+from typing import Union
 from pydantic import BaseModel
 
 
 class PlayRequest(BaseModel):
     song_id: int
     # int = PortAudio index, str "pw:<node>" = PipeWire sink
-    singer_device: int | str
-    audience_device: int | str
+    singer_device: Union[int, str]
+    audience_device: Union[int, str]
 
 
 class SeekRequest(BaseModel):
@@ -35,6 +36,7 @@ class DelayRequest(BaseModel):
 
 
 class CalibrationStartRequest(BaseModel):
-    singer_device: int | str
-    audience_device: int | str
+    singer_device: Union[int, str]
+    audience_device: Union[int, str]
+
 

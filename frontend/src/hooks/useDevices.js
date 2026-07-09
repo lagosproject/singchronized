@@ -1,5 +1,38 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../api/client';
+import { retryWithBackoff } from '../utils/retryBackoff';
+
+// Given the device list, pick the saved singer/audience devices (by name)
+// or fall back to the first/second entries.
+function pickDevices(data) {
+  if (data.length === 0) {
+    return { singerDevice: null, audienceDevice: null };
+  }
+
+  const savedSingerName = localStorage.getItem('singerDeviceName');
+  const savedAudienceName = localStorage.getItem('audienceDeviceName');
+
+  let sIdx = null;
+  let aIdx = null;
+
+  if (savedSingerName) {
+    const found = data.find(d => d.raw_name === savedSingerName || d.name === savedSingerName);
+    if (found) sIdx = found.index;
+  }
+  if (sIdx === null) {
+    sIdx = data[0].index;
+  }
+
+  if (savedAudienceName) {
+    const found = data.find(d => d.raw_name === savedAudienceName || d.name === savedAudienceName);
+    if (found) aIdx = found.index;
+  }
+  if (aIdx === null) {
+    aIdx = data[1] ? data[1].index : data[0].index;
+  }
+
+  return { singerDevice: sIdx, audienceDevice: aIdx };
+}
 
 export function useDevices() {
   const [devices, setDevices] = useState([]);
@@ -8,57 +41,50 @@ export function useDevices() {
   const [gpuStatus, setGpuStatus] = useState({ has_gpu: false, gpu_name: null });
   const [isCalibrating, setIsCalibrating] = useState(false);
 
-  const refreshDevices = useCallback(() => {
-    api.getDevices()
-      .then(data => {
-        setDevices(data);
-        if (data.length > 0) {
-          const savedSingerName = localStorage.getItem('singerDeviceName');
-          const savedAudienceName = localStorage.getItem('audienceDeviceName');
-
-          let sIdx = null;
-          let aIdx = null;
-
-          if (savedSingerName) {
-            const found = data.find(d => d.raw_name === savedSingerName || d.name === savedSingerName);
-            if (found) sIdx = found.index;
-          }
-          if (sIdx === null) {
-            sIdx = data[0].index;
-          }
-
-          if (savedAudienceName) {
-            const found = data.find(d => d.raw_name === savedAudienceName || d.name === savedAudienceName);
-            if (found) aIdx = found.index;
-          }
-          if (aIdx === null) {
-            aIdx = data[1] ? data[1].index : data[0].index;
-          }
-
-          setSingerDevice(sIdx);
-          setAudienceDevice(aIdx);
-        } else {
-          setSingerDevice(null);
-          setAudienceDevice(null);
-        }
-      })
-      .catch(err => console.error("Failed to fetch devices:", err));
+  const applyDevices = useCallback((data) => {
+    setDevices(data);
+    const { singerDevice: sIdx, audienceDevice: aIdx } = pickDevices(data);
+    setSingerDevice(sIdx);
+    setAudienceDevice(aIdx);
   }, []);
 
-  useEffect(() => {
-    refreshDevices();
+  const refreshDevices = useCallback(() => {
+    api.getDevices()
+      .then(applyDevices)
+      .catch(err => console.error("Failed to fetch devices:", err));
+  }, [applyDevices]);
 
-    api.getGpuStatus()
-      .then(setGpuStatus)
-      .catch(err => console.error("Failed to fetch GPU status:", err));
+  useEffect(() => {
+    let active = true;
+
+    retryWithBackoff(
+      () => api.getDevices().then(data => {
+        if (active) applyDevices(data);
+      }),
+      () => active,
+      { label: 'Fetch devices' }
+    );
+
+    retryWithBackoff(
+      () => api.getGpuStatus().then(status => {
+        if (active) setGpuStatus(status);
+      }),
+      () => active,
+      { label: 'Fetch GPU status' }
+    );
 
     if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
       navigator.mediaDevices.addEventListener('devicechange', refreshDevices);
       return () => {
+        active = false;
         navigator.mediaDevices.removeEventListener('devicechange', refreshDevices);
       };
     }
-  }, [refreshDevices]);
+
+    return () => {
+      active = false;
+    };
+  }, [refreshDevices, applyDevices]);
 
   const playTestTone = async (deviceId) => {
     if (deviceId === null || deviceId === undefined) return;

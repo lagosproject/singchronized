@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { getWsBase } from '../config';
+import { retryWithBackoff } from '../utils/retryBackoff';
 
 export function usePlayback({ songs, fetchSongs }) {
   const [playback, setPlayback] = useState({ is_playing: false, is_paused: false, current_time: 0, song_id: null });
@@ -21,8 +22,19 @@ export function usePlayback({ songs, fetchSongs }) {
   const [progressMap, setProgressMap] = useState({});
 
   useEffect(() => {
-    api.setVolume(singerVolume, audienceVolume).catch(console.error);
-    api.setDelay(vocalsDelay / 1000).catch(console.error);
+    let active = true;
+    retryWithBackoff(
+      async () => {
+        await api.setVolume(singerVolume, audienceVolume);
+        await api.setDelay(vocalsDelay / 1000);
+        console.log("Successfully synchronized audio settings with backend.");
+      },
+      () => active,
+      { label: 'Sync audio settings' }
+    );
+    return () => {
+      active = false;
+    };
   }, []);
 
   const wsRef = useRef(null);
