@@ -1,4 +1,5 @@
 import { useApp } from '../../context/app-context';
+import { t } from '../../i18n';
 
 export default function AddToPlaylistMenu({ song, onClose }) {
   const { playlists, openCreatePlaylistModal } = useApp();
@@ -19,7 +20,7 @@ export default function AddToPlaylistMenu({ song, onClose }) {
       WebkitBackdropFilter: 'blur(12px)'
     }}>
       <div style={{ padding: '4px 0' }}>
-        <span style={{ display: 'block', padding: '6px 12px', fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Add to Playlist</span>
+        <span style={{ display: 'block', padding: '6px 12px', fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>{t("addToPlaylist")}</span>
         {playlists.playlists.map(p => (
           <button
             key={p.name}
@@ -73,7 +74,7 @@ export default function AddToPlaylistMenu({ song, onClose }) {
           onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
         >
-          + New Playlist
+          {t("newPlaylist")}
         </button>
       </div>
     </div>

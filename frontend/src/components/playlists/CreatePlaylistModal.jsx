@@ -3,6 +3,7 @@ import { api } from '../../api/client';
 import { useApp } from '../../context/app-context';
 import { Music, Search, Trash2, Plus } from 'lucide-react';
 import { resolveMediaUrl } from '../../config';
+import { t } from '../../i18n';
 
 function CreatePlaylistForm({ presetSongIds }) {
   const { closeCreatePlaylistModal, library, playlists } = useApp();
@@ -25,7 +26,7 @@ function CreatePlaylistForm({ presetSongIds }) {
       playlists.fetchPlaylists();
     } catch (err) {
       console.error(err);
-      alert(err.message || "Error creating playlist");
+      alert(err.message || t("errorCreatingPlaylist"));
     }
   };
 
@@ -62,15 +63,15 @@ function CreatePlaylistForm({ presetSongIds }) {
         {/* Modal Header */}
         <div style={{ padding: '24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Create New Playlist</h3>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Add tracks to a new custom playlist</span>
+            <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>{t("createNewPlaylist")}</h3>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t("addTracksToNewPlaylist")}</span>
           </div>
           <button
             onClick={closeCreatePlaylistModal}
             className="interactive-btn secondary-btn"
             style={{ padding: '8px 12px', borderRadius: '8px' }}
           >
-            Cancel
+            {t("cancel")}
           </button>
         </div>
 
@@ -78,19 +79,19 @@ function CreatePlaylistForm({ presetSongIds }) {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, overflowY: 'auto' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>Playlist Name</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>{t("playlistName")}</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                placeholder="e.g. My Favorites, Workout Mix..."
+                placeholder={t("playlistNamePlaceholder")}
                 style={{ width: '100%', padding: '12px', borderRadius: '8px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', color: 'white', fontSize: '0.95rem' }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>Playlist Cover Thumbnail (Optional)</label>
+              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>{t("playlistCoverOptional")}</label>
               <input
                 type="file"
                 onChange={(e) => setCoverFile(e.target.files[0])}
@@ -102,13 +103,13 @@ function CreatePlaylistForm({ presetSongIds }) {
             {/* Search Tracks to Add */}
             <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                Search Tracks to Add
+                {t("searchTracksToAdd")}
               </label>
               <div style={{ position: 'relative' }}>
                 <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input
                   type="text"
-                  placeholder="Type song title or artist..."
+                  placeholder={t("typeSongOrArtist")}
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -206,7 +207,7 @@ function CreatePlaylistForm({ presetSongIds }) {
                     !selectedSongIds.includes(song.id)
                   ).length === 0 && (
                     <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      No matching songs found
+                      {t("noSongsFound")}
                     </div>
                   )}
                 </div>
@@ -215,12 +216,12 @@ function CreatePlaylistForm({ presetSongIds }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, overflow: 'hidden' }}>
               <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                Selected Tracks ({selectedSongIds.length})
+                {t("selectedTracksCount", { count: selectedSongIds.length })}
               </label>
 
               {selectedSongIds.length === 0 ? (
                 <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', background: 'rgba(0,0,0,0.1)', borderRadius: '8px', fontSize: '0.9rem' }}>
-                  No tracks selected yet. Search above to add tracks.
+                  {t("noTracksSelected")}
                 </div>
               ) : (
                 <div style={{
@@ -305,14 +306,14 @@ function CreatePlaylistForm({ presetSongIds }) {
               onClick={closeCreatePlaylistModal}
               className="interactive-btn secondary-btn"
             >
-              Discard
+              {t("discard")}
             </button>
             <button
               type="submit"
               className="interactive-btn"
               disabled={!name.trim() || selectedSongIds.length === 0}
             >
-              Create Playlist
+              {t("createPlaylist")}
             </button>
           </div>
         </form>

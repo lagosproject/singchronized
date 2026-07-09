@@ -3,6 +3,7 @@ import { User, PlayCircle } from 'lucide-react';
 import { api } from '../../api/client';
 import { resolveMediaUrl } from '../../config';
 import { useApp } from '../../context/app-context';
+import { t } from '../../i18n';
 
 export default function ArtistCard({ artistName, songsCount, onClick }) {
   const [imageUrl, setImageUrl] = useState(null);
@@ -79,7 +80,7 @@ export default function ArtistCard({ artistName, songsCount, onClick }) {
           {artistName}
         </h4>
         <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-          {songsCount} {songsCount === 1 ? 'song' : 'songs'}
+          {t("songsCount", { count: songsCount })}
         </p>
       </div>
     </div>

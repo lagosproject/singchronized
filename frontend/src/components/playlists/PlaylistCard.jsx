@@ -1,6 +1,7 @@
 import { Mic, PlayCircle } from 'lucide-react';
 import { resolveMediaUrl } from '../../config';
 import { useApp } from '../../context/app-context';
+import { t } from '../../i18n';
 
 export default function PlaylistCard({ playlist, onClick }) {
   const { playSong, queue } = useApp();
@@ -26,7 +27,7 @@ export default function PlaylistCard({ playlist, onClick }) {
       </div>
       <div style={{ overflow: 'hidden' }}>
         <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{playlist.name}</h4>
-        <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{playlist.songs.length} tracks</p>
+        <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t("tracksCount", { count: playlist.songs.length })}</p>
       </div>
     </div>
   );

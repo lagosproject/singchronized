@@ -2,11 +2,33 @@ import { useState, useEffect, useRef } from 'react';
 import { Minimize2, Pause, PlayCircle, Sparkles, SkipForward } from 'lucide-react';
 import { useApp } from '../../context/app-context';
 import SeekBar from './SeekBar';
+import { t } from '../../i18n';
+
+// Helper functions for dynamic font size adaptation based on lyric length
+const getActiveFontSize = (text) => {
+  if (!text) return 'clamp(2.5rem, 6vw, 4.5rem)';
+  const len = text.length;
+  if (len < 25) return 'clamp(2.5rem, 6vw, 4.5rem)';
+  if (len < 45) return 'clamp(2rem, 5.2vw, 3.8rem)';
+  if (len < 70) return 'clamp(1.6rem, 4.5vw, 3rem)';
+  return 'clamp(1.2rem, 3.8vw, 2.2rem)'; // Scales down significantly for very long lines
+};
+
+const getSecondaryFontSize = (text, isNext = false) => {
+  if (!text) return isNext ? 'clamp(1.5rem, 3vw, 2.2rem)' : 'clamp(1.2rem, 2.5vw, 1.8rem)';
+  const len = text.length;
+  if (len < 30) {
+    return isNext ? 'clamp(1.5rem, 3vw, 2.2rem)' : 'clamp(1.2rem, 2.5vw, 1.8rem)';
+  }
+  if (len < 60) {
+    return isNext ? 'clamp(1.2rem, 2.5vw, 1.8rem)' : 'clamp(1rem, 2vw, 1.5rem)';
+  }
+  return isNext ? 'clamp(1rem, 2.2vw, 1.4rem)' : 'clamp(0.85rem, 1.8vw, 1.2rem)';
+};
 
 export default function FullscreenLyrics() {
   const { playback, queue } = useApp();
   const { playback: status, playingSong, lyrics, activeLyricIndex, isFullscreenLyrics, setIsFullscreenLyrics, pause, resume } = playback;
-
 
   const [isControlsVisible, setIsControlsVisible] = useState(true);
   const timeoutRef = useRef(null);
@@ -43,52 +65,120 @@ export default function FullscreenLyrics() {
 
   if (!status.is_playing || !playingSong || !isFullscreenLyrics) return null;
 
+  const activeText = activeLyricIndex >= 0 ? lyrics[activeLyricIndex]?.text : t("instrumentalIntro");
+  const prevText = activeLyricIndex > 0 ? lyrics[activeLyricIndex - 1]?.text : '';
+  const nextText = activeLyricIndex < lyrics.length - 1 ? lyrics[activeLyricIndex + 1]?.text : t("outro");
+
   return (
     <div 
       className="fullscreen-overlay"
       style={{ cursor: isControlsVisible ? 'default' : 'none' }}
     >
-      {/* Top Header */}
+      {/* Top Header - Absolutely Positioned */}
       <div style={{ 
+        position: 'absolute',
+        top: '48px',
+        left: '48px',
+        right: '48px',
+        zIndex: 10,
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
+        gap: '24px',
         opacity: isControlsVisible ? 1 : 0,
         pointerEvents: isControlsVisible ? 'auto' : 'none',
-        transition: 'opacity 0.5s ease-in-out'
+        transition: 'opacity 0.4s ease-in-out',
+        boxSizing: 'border-box'
       }}>
-        <div>
-          <span style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Karaoke Mode</span>
-          <h2 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 800 }}>{playingSong.title}</h2>
-          <p style={{ margin: '4px 0 0 0', fontSize: '1.25rem', color: 'var(--text-secondary)' }}>{playingSong.artist}</p>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t("karaokeMode")}</span>
+          <h2 style={{ 
+            margin: 0, 
+            fontSize: 'clamp(1.5rem, 3.5vw, 2.5rem)', 
+            fontWeight: 800,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }} title={playingSong.title}>
+            {playingSong.title}
+          </h2>
+          <p style={{ 
+            margin: '4px 0 0 0', 
+            fontSize: 'clamp(1rem, 2vw, 1.25rem)', 
+            color: 'var(--text-secondary)',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }} title={playingSong.artist}>
+            {playingSong.artist}
+          </p>
         </div>
 
         <button
           onClick={() => setIsFullscreenLyrics(false)}
           className="interactive-btn secondary-btn"
-          style={{ padding: '12px 24px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)' }}
+          style={{ 
+            padding: '12px 24px', 
+            borderRadius: '12px', 
+            border: '1px solid rgba(255,255,255,0.2)',
+            flexShrink: 0
+          }}
         >
-          <Minimize2 size={18} /> Close Fullscreen (Esc)
+          <Minimize2 size={18} /> {t("closeFullscreenEsc")}
         </button>
       </div>
 
-      {/* Central Synced Lyrics View */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', textAlign: 'center', margin: 'auto 0' }}>
+      {/* Central Synced Lyrics View - Centered and Overlay-safe */}
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        gap: '24px', 
+        textAlign: 'center', 
+        margin: 'auto',
+        alignSelf: 'center',
+        width: '100%',
+        maxWidth: '1000px',
+        maxHeight: '85vh', // Always takes up full available height
+        justifyContent: 'center',
+        overflow: 'hidden',
+        boxSizing: 'border-box'
+      }}>
         {lyrics.length === 0 ? (
-          <div style={{ color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <div style={{ 
+            color: 'var(--text-muted)', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            gap: '16px',
+            padding: '24px'
+          }}>
             <Sparkles size={36} className="badge-processing" />
-            <p style={{ fontSize: '1.5rem' }}>No synced lyrics available. Turn on AI lyrics for this song!</p>
+            <p style={{ 
+              fontSize: 'clamp(1.2rem, 3vw, 1.8rem)',
+              wordBreak: 'break-word',
+              overflowWrap: 'anywhere'
+            }}>
+              {t("noSyncedLyrics")}
+            </p>
           </div>
         ) : (
           <>
             {/* Previous Line */}
-            <p style={{ fontSize: '1.8rem', color: 'var(--text-muted)', margin: 0, opacity: 0.4, transition: 'all 0.3s ease' }}>
-              {activeLyricIndex > 0 ? lyrics[activeLyricIndex - 1].text : ''}
+            <p style={{ 
+              fontSize: getSecondaryFontSize(prevText, false), 
+              color: 'var(--text-muted)', 
+              margin: 0, 
+              opacity: 0.4, 
+              transition: 'all 0.3s ease',
+              wordBreak: 'break-word',
+              overflowWrap: 'anywhere'
+            }}>
+              {prevText}
             </p>
 
             {/* Current Active Line */}
             <p style={{
-              fontSize: '4.5rem',
+              fontSize: getActiveFontSize(activeText),
               fontWeight: 900,
               color: 'white',
               margin: '12px 0',
@@ -97,21 +187,36 @@ export default function FullscreenLyrics() {
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               textShadow: '0 0 30px rgba(6, 182, 212, 0.4)',
-              animation: 'pulse-glow 2s infinite ease-in-out'
+              animation: 'pulse-glow 2s infinite ease-in-out',
+              wordBreak: 'break-word',
+              overflowWrap: 'anywhere'
             }}>
-              {activeLyricIndex >= 0 ? lyrics[activeLyricIndex].text : 'Instrumental Intro / Prepare to Sing...'}
+              {activeText}
             </p>
 
             {/* Next Line */}
-            <p style={{ fontSize: '2.2rem', color: 'var(--text-secondary)', margin: 0, opacity: 0.75, transition: 'all 0.3s ease' }}>
-              {activeLyricIndex < lyrics.length - 1 ? lyrics[activeLyricIndex + 1].text : 'Outro...'}
+            <p style={{ 
+              fontSize: getSecondaryFontSize(nextText, true), 
+              color: 'var(--text-secondary)', 
+              margin: 0, 
+              opacity: 0.75, 
+              transition: 'all 0.3s ease',
+              wordBreak: 'break-word',
+              overflowWrap: 'anywhere'
+            }}>
+              {nextText}
             </p>
           </>
         )}
       </div>
 
-      {/* Bottom Player Controls & Seek Slider */}
+      {/* Bottom Player Controls & Seek Slider - Absolutely Positioned */}
       <div className="glass-panel" style={{ 
+        position: 'absolute',
+        bottom: '48px',
+        left: '48px',
+        right: '48px',
+        zIndex: 10,
         padding: '24px', 
         borderRadius: '16px', 
         background: 'rgba(0,0,0,0.4)', 
@@ -120,13 +225,14 @@ export default function FullscreenLyrics() {
         gap: '24px',
         opacity: isControlsVisible ? 1 : 0,
         pointerEvents: isControlsVisible ? 'auto' : 'none',
-        transition: 'opacity 0.5s ease-in-out'
+        transition: 'opacity 0.4s ease-in-out',
+        boxSizing: 'border-box'
       }}>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {status.is_paused ? (
-            <button onClick={resume} className="interactive-btn" style={{ padding: '12px 20px' }}><PlayCircle size={18} /> Resume</button>
+            <button onClick={resume} className="interactive-btn" style={{ padding: '12px 20px' }}><PlayCircle size={18} /> {t("resume")}</button>
           ) : (
-            <button onClick={pause} className="interactive-btn secondary-btn" style={{ padding: '12px 20px' }}><Pause size={18} /> Pause</button>
+            <button onClick={pause} className="interactive-btn secondary-btn" style={{ padding: '12px 20px' }}><Pause size={18} /> {t("pause")}</button>
           )}
           {queue.queue.length > 0 && queue.currentQueueIndex !== null && queue.currentQueueIndex < queue.queue.length - 1 && (
             <button
@@ -136,9 +242,9 @@ export default function FullscreenLyrics() {
               }}
               className="interactive-btn secondary-btn"
               style={{ padding: '12px 20px' }}
-              title="Next to Timer"
+              title={t("nextToTimer")}
             >
-              <SkipForward size={18} /> Next
+              <SkipForward size={18} /> {t("next")}
             </button>
           )}
         </div>
@@ -146,8 +252,8 @@ export default function FullscreenLyrics() {
         <SeekBar large />
 
         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', gap: '12px' }}>
-          <span>Space: Pause/Play</span>
-          <span>←/→: Seek</span>
+          <span>{t("spacePausePlay")}</span>
+          <span>{t("seekHelp")}</span>
         </div>
       </div>
     </div>

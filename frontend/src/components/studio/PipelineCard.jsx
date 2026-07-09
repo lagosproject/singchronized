@@ -1,5 +1,6 @@
 import { Cpu, Edit, Layers, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/app-context';
+import { t } from '../../i18n';
 
 function StatusBadge({ status, labels, progress = 0 }) {
   if (status === 'COMPLETED') {
@@ -46,9 +47,9 @@ export default function PipelineCard({ song }) {
               status={song.split_status} 
               progress={splitProgress}
               labels={{ 
-                completed: 'Ready', 
-                processing: splitProgress > 0 ? `Processing ${splitProgress}%` : 'Processing', 
-                pending: 'Pending' 
+                completed: t("ready"), 
+                processing: splitProgress > 0 ? `${t("processing")} ${splitProgress}%` : t("processing"), 
+                pending: t("pending") 
               }} 
             />
           </div>
@@ -58,11 +59,11 @@ export default function PipelineCard({ song }) {
               status={song.lyrics_status} 
               progress={lyricsProgress}
               labels={{ 
-                completed: `Synced (${song.lyrics_model || 'base'})`, 
+                completed: t("syncedLyrics", { model: song.lyrics_model || 'base' }), 
                 processing: song.lyrics_model 
-                  ? (lyricsProgress > 0 ? `Syncing (${song.lyrics_model}) ${lyricsProgress}%` : `Syncing (${song.lyrics_model})`) 
-                  : 'Syncing', 
-                pending: 'No Lyrics' 
+                  ? (lyricsProgress > 0 ? t("syncingModelProgress", { model: song.lyrics_model, progress: lyricsProgress }) : t("syncingModel", { model: song.lyrics_model })) 
+                  : t("syncing"), 
+                pending: t("noLyrics") 
               }} 
             />
           </div>
@@ -86,7 +87,7 @@ export default function PipelineCard({ song }) {
             style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
             disabled={song.split_status === 'PROCESSING'}
           >
-            <Layers size={12} /> Split Audio
+            <Layers size={12} /> {t("splitAudio")}
           </button>
         )}
 
@@ -98,13 +99,13 @@ export default function PipelineCard({ song }) {
             disabled={song.lyrics_status === 'PROCESSING' || song.split_status !== 'COMPLETED'}
             title={
               song.split_status !== 'COMPLETED'
-                ? "Split audio first to isolate clean vocals for transcription"
+                ? t("splitAudioFirstTip")
                 : song.lyrics_status === 'COMPLETED'
-                ? `Regenerate lyrics using the current settings model (${modelSize})`
-                : "Generate lyrics"
+                ? t("regenerateLyricsTip", { model: modelSize })
+                : t("generateLyrics")
             }
           >
-            <Cpu size={12} /> {song.lyrics_status === 'COMPLETED' ? 'Redo Lyrics' : 'Auto Lyrics'}
+            <Cpu size={12} /> {song.lyrics_status === 'COMPLETED' ? t("redoLyrics") : t("autoLyrics")}
           </button>
         )}
 
@@ -112,9 +113,9 @@ export default function PipelineCard({ song }) {
           onClick={() => setEditingSong(song)}
           className="interactive-btn secondary-btn"
           style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px' }}
-          title="Edit Lyrics"
+          title={t("editLyrics")}
         >
-          <Edit size={12} /> Edit Lyrics
+          <Edit size={12} /> {t("editLyrics")}
         </button>
       </div>
     </div>

@@ -10,6 +10,7 @@ import ArtistCard from '../artists/ArtistCard';
 import ArtistDetail from '../artists/ArtistDetail';
 import ArtistRowImage from '../artists/ArtistRowImage';
 import { resolveMediaUrl } from '../../config';
+import { t } from '../../i18n';
 
 const normalizeText = (text) => {
   if (!text) return '';
@@ -95,7 +96,7 @@ export default function HomeView({ setActiveTab }) {
               playlists.setSelectedPlaylist(null);
               setSelectedArtist(null);
             }}
-            title="Home"
+            title={t("home")}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -127,7 +128,7 @@ export default function HomeView({ setActiveTab }) {
             <Search size={18} color="var(--text-muted)" />
             <input
               type="text"
-              placeholder="Search songs, artists, or playlists..."
+              placeholder={t("searchPlaceholder")}
               value={searchInputValue}
               onChange={(e) => setSearchInputValue(e.target.value)}
               onFocus={() => setIsFocused(true)}
@@ -165,9 +166,9 @@ export default function HomeView({ setActiveTab }) {
             {/* Autocomplete Dropdown */}
             {isFocused && searchInputValue.trim() !== '' && (
               <div className="search-autocomplete-dropdown">
-                {matchingSongs.length === 0 && matchingArtists.length === 0 && matchingPlaylists.length === 0 ? (
+                 {matchingSongs.length === 0 && matchingArtists.length === 0 && matchingPlaylists.length === 0 ? (
                   <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center' }}>
-                    No quick results. Press <kbd className="kbd-key">Enter</kbd> for full search.
+                    {t("noQuickResults1")}<kbd className="kbd-key">Enter</kbd>{t("noQuickResults2")}
                   </div>
                 ) : (
                   <>
@@ -181,12 +182,12 @@ export default function HomeView({ setActiveTab }) {
                       alignItems: 'center',
                       gap: '4px'
                     }}>
-                      Press <kbd className="kbd-key">Enter</kbd> to search.
+                      {t("pressEnterToSearch1")}<kbd className="kbd-key">Enter</kbd>{t("pressEnterToSearch2")}
                     </div>
                     {/* Songs Section */}
                     {matchingSongs.length > 0 && (
                       <div className="autocomplete-section">
-                        <div className="autocomplete-section-title">Songs</div>
+                        <div className="autocomplete-section-title">{t("songs")}</div>
                         {matchingSongs.map(song => (
                           <div 
                             key={song.id} 
@@ -226,7 +227,7 @@ export default function HomeView({ setActiveTab }) {
                     {/* Artists Section */}
                     {matchingArtists.length > 0 && (
                       <div className="autocomplete-section">
-                        <div className="autocomplete-section-title">Artists</div>
+                        <div className="autocomplete-section-title">{t("artists")}</div>
                         {matchingArtists.map(artist => (
                           <div 
                             key={artist} 
@@ -248,7 +249,7 @@ export default function HomeView({ setActiveTab }) {
                     {/* Playlists Section */}
                     {matchingPlaylists.length > 0 && (
                       <div className="autocomplete-section">
-                        <div className="autocomplete-section-title">Playlists</div>
+                        <div className="autocomplete-section-title">{t("playlists")}</div>
                         {matchingPlaylists.map(playlist => (
                           <div 
                             key={playlist.name} 
@@ -301,7 +302,7 @@ export default function HomeView({ setActiveTab }) {
           {/* Your Playlists */}
           <div>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '16px' }}>
-              Your Playlists
+              {t("playlists")}
             </h3>
             <div className="spotify-grid">
               {/* Create Playlist Card Button */}
@@ -323,8 +324,8 @@ export default function HomeView({ setActiveTab }) {
                     <span style={{ fontSize: '24px', fontWeight: 300, color: 'var(--primary)' }}>+</span>
                   </div>
                   <div>
-                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Create Playlist</h4>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Custom Playlist</p>
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>{t("createPlaylist")}</h4>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t("customPlaylist")}</p>
                   </div>
                 </div>
               </div>
@@ -342,7 +343,7 @@ export default function HomeView({ setActiveTab }) {
           {lastPlayed.length > 0 && (
             <div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <RefreshCw size={18} color="var(--primary)" /> Last Played
+                <RefreshCw size={18} color="var(--primary)" /> {t("lastPlayed")}
               </h3>
               <div className="spotify-grid">
                 {lastPlayed.map(id => {
@@ -358,7 +359,7 @@ export default function HomeView({ setActiveTab }) {
           {readySongs.length > 0 && (
             <div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={18} color="var(--secondary)" /> Recommended for Karaoke
+                <Sparkles size={18} color="var(--secondary)" /> {t("recommendedForKaraoke")}
               </h3>
               <div className="spotify-grid">
                 {readySongs.slice(0, 4).map(song => (
@@ -372,7 +373,7 @@ export default function HomeView({ setActiveTab }) {
           {uniqueArtists.length > 0 && (
             <div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <User size={18} color="var(--primary)" /> Artists
+                <User size={18} color="var(--primary)" /> {t("artists")}
               </h3>
               <div className="spotify-grid">
                 {uniqueArtists.map(artistName => {
@@ -395,16 +396,16 @@ export default function HomeView({ setActiveTab }) {
 
           {/* All Tracks Row List */}
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '16px' }}>All Songs</h3>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '16px' }}>{t("allSongs")}</h3>
 
             {songs.length === 0 ? (
               <div className="glass-panel" style={{ padding: '60px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', color: 'var(--text-secondary)' }}>
                 <Music size={48} color="var(--text-muted)" />
                 <div style={{ textAlign: 'center' }}>
-                  <h3>Your library is empty</h3>
-                  <p>Go to the <strong>Ingestion & Processing</strong> tab to import some tracks and prepare them with local AI!</p>
+                  <h3>{t("libraryEmpty")}</h3>
+                  <p>{t("libraryEmptyDesc")}</p>
                 </div>
-                <button onClick={() => setActiveTab('studio')} className="interactive-btn">Go to Ingestion & Processing</button>
+                <button onClick={() => setActiveTab('studio')} className="interactive-btn">{t("goToIngestion")}</button>
               </div>
             ) : (
               <div className="glass-panel" style={{ padding: '8px' }}>

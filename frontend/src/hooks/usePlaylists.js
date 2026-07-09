@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
+import { t } from '../i18n';
 
 export function usePlaylists() {
   const [playlists, setPlaylists] = useState([]);
@@ -27,7 +28,7 @@ export function usePlaylists() {
   const addSongToPlaylist = async (songId, playlist) => {
     const existingIds = playlist.songs.map(s => s.id);
     if (existingIds.includes(songId)) {
-      alert("Song is already in this playlist");
+      alert(t("songInPlaylistAlready"));
       return;
     }
     try {
@@ -35,19 +36,19 @@ export function usePlaylists() {
       fetchPlaylists();
     } catch (err) {
       console.error(err);
-      alert("Failed to add song to playlist");
+      alert(t("failedAddSongToPlaylist"));
     }
   };
 
   const deletePlaylist = async (name) => {
-    if (!confirm(`Are you sure you want to delete the playlist "${name}"?`)) return;
+    if (!confirm(t("confirmDeletePlaylist", { name }))) return;
     try {
       await api.deletePlaylist(name);
       setSelectedPlaylist(prev => (prev && prev.name === name ? null : prev));
       fetchPlaylists();
     } catch (err) {
       console.error(err);
-      alert("Failed to delete playlist");
+      alert(t("failedDeletePlaylist"));
     }
   };
 
@@ -64,7 +65,7 @@ export function usePlaylists() {
       });
     } catch (err) {
       console.error(err);
-      alert(err.message || "Failed to rename playlist");
+      alert(err.message || t("failedRenamePlaylist"));
     }
   };
 

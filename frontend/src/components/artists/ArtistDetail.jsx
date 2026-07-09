@@ -4,6 +4,7 @@ import { useApp } from '../../context/app-context';
 import SongRow from '../songs/SongRow';
 import { api } from '../../api/client';
 import { resolveMediaUrl } from '../../config';
+import { t } from '../../i18n';
 
 export default function ArtistDetail({ artistName }) {
   const { library, playSong, queue, openCreatePlaylistModal } = useApp();
@@ -80,9 +81,9 @@ export default function ArtistDetail({ artistName }) {
             )}
           </div>
           <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>Artist</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>{t("artist")}</span>
             <h2 style={{ margin: '4px 0', fontSize: '2.5rem', fontWeight: 800, color: 'white' }}>{artistName}</h2>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{artistSongs.length} {artistSongs.length === 1 ? 'track' : 'tracks'} in your library</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t("tracksInLibrary", { count: artistSongs.length })}</span>
           </div>
         </div>
 
@@ -94,7 +95,7 @@ export default function ArtistDetail({ artistName }) {
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={artistSongs.length === 0}
           >
-            <Play size={16} fill="white" /> Play All
+            <Play size={16} fill="white" /> {t("playAll")}
           </button>
           <button
             onClick={addAllToQueue}
@@ -102,7 +103,7 @@ export default function ArtistDetail({ artistName }) {
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={artistSongs.length === 0}
           >
-            <ListPlus size={16} /> Add to Queue
+            <ListPlus size={16} /> {t("addToQueue")}
           </button>
           <button
             onClick={shufflePlay}
@@ -110,7 +111,7 @@ export default function ArtistDetail({ artistName }) {
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={artistSongs.length === 0}
           >
-            <Shuffle size={16} /> Shuffle
+            <Shuffle size={16} /> {t("shuffle")}
           </button>
           <button
             onClick={addAllToPlaylist}
@@ -118,16 +119,16 @@ export default function ArtistDetail({ artistName }) {
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={artistSongs.length === 0}
           >
-            <FolderPlus size={16} /> Add to Playlist
+            <FolderPlus size={16} /> {t("addToPlaylist")}
           </button>
         </div>
       </div>
 
       <div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '16px' }}>Popular Tracks</h3>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '16px' }}>{t("popularTracks")}</h3>
         {artistSongs.length === 0 ? (
           <div className="glass-panel" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            No tracks found for this artist in your library.
+            {t("noTracksArtist")}
           </div>
         ) : (
           <div className="glass-panel" style={{ padding: '8px' }}>

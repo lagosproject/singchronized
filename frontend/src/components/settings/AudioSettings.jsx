@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Headphones, Volume2, Play, Square, Activity } from 'lucide-react';
 import { useApp } from '../../context/app-context';
+import { t } from '../../i18n';
 
 function DeviceRoutingPanel({ icon, label, volumeLabel, device, onDeviceChange, volume, onVolumeChange, onTestTone, accentColor }) {
   const { devices } = useApp();
@@ -17,7 +18,7 @@ function DeviceRoutingPanel({ icon, label, volumeLabel, device, onDeviceChange, 
           className="interactive-btn secondary-btn"
           style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}
         >
-          <Volume2 size={12} /> Test Tone
+          <Volume2 size={12} /> {t("testTone")}
         </button>
       </div>
 
@@ -90,23 +91,22 @@ export default function AudioSettings() {
   return (
     <>
       <div>
-        <h2 style={{ margin: '0 0 8px 0', fontSize: '1.75rem', fontWeight: 800, background: 'linear-gradient(to right, #ffffff, #a7f3d0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Audio Routing & Levels</h2>
-        <p style={{ margin: '0', color: 'var(--text-secondary)' }}>Configure output audio interfaces and monitoring volume.</p>
+        <h2 style={{ margin: '0 0 8px 0', fontSize: '1.75rem', fontWeight: 800, background: 'linear-gradient(to right, #ffffff, #a7f3d0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{t("audioRoutingLevels")}</h2>
+        <p style={{ margin: '0', color: 'var(--text-secondary)' }}>{t("audioRoutingLevelsDesc")}</p>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '650px' }}>
         {!hasMultipleOutputs && (
           <div className="glass-panel" style={{ padding: '14px 18px', borderRadius: '12px', background: 'rgba(251, 191, 36, 0.06)', border: '1px solid rgba(251, 191, 36, 0.35)', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Only one audio output was found, so singer and audience audio cannot be separated.
-            Connect a second output (Bluetooth or USB headphones, a USB sound card, or an HDMI screen with speakers) and the singer output will appear here automatically.
+            {t("onlyOneOutputNotice")}
           </div>
         )}
 
         {hasMultipleOutputs && (
           <DeviceRoutingPanel
             icon={<Headphones size={18} color="var(--secondary)" />}
-            label="Singer Output (Vocal Monitoring / Headphones)"
-            volumeLabel="Singer Monitoring Volume"
+            label={t("singerOutput")}
+            volumeLabel={t("singerMonitoringVolume")}
             device={devices.singerDevice}
             onDeviceChange={devices.selectSingerDevice}
             volume={singerVolume}
@@ -121,8 +121,8 @@ export default function AudioSettings() {
 
         <DeviceRoutingPanel
           icon={<Volume2 size={18} color="var(--primary)" />}
-          label="Audience Output (Instrumental / Speakers)"
-          volumeLabel="Audience Master Volume"
+          label={t("audienceOutput")}
+          volumeLabel={t("audienceMasterVolume")}
           device={devices.audienceDevice}
           onDeviceChange={devices.selectAudienceDevice}
           volume={audienceVolume}
@@ -137,7 +137,7 @@ export default function AudioSettings() {
         {hasMultipleOutputs && (
           <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Device Synchronization (Latency Calibration)</span>
+              <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{t("deviceSynchronization")}</span>
             </div>
 
             {/* Mode selection buttons */}
@@ -151,7 +151,7 @@ export default function AudioSettings() {
                 className={`interactive-btn ${calibrationMode === 'tone' ? '' : 'secondary-btn'}`}
                 style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}
               >
-                Use Calibration Tone
+                {t("useCalibrationTone")}
               </button>
               <button
                 onClick={() => {
@@ -162,7 +162,7 @@ export default function AudioSettings() {
                 className={`interactive-btn ${calibrationMode === 'song' ? '' : 'secondary-btn'}`}
                 style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600 }}
               >
-                Use Library Song
+                {t("useLibrarySong")}
               </button>
             </div>
 
@@ -170,7 +170,7 @@ export default function AudioSettings() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Activity size={18} color="var(--secondary)" />
-                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Calibration Tone (Beats)</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{t("calibrationToneBeats")}</span>
                 </div>
                 <button
                   onClick={() => isCalibrating ? stopCalibration() : startCalibration(singerDevice, audienceDevice)}
@@ -189,13 +189,13 @@ export default function AudioSettings() {
                   }}
                 >
                   {isCalibrating ? <Square size={12} /> : <Play size={12} />}
-                  {isCalibrating ? 'Stop Calibration Tone' : 'Start Calibration Tone'}
+                  {isCalibrating ? t("stopCalibrationTone") : t("startCalibrationTone")}
                 </button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Calibrate using Library Song</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{t("calibrateUsingSong")}</span>
                   <button
                     onClick={toggleSongCalibration}
                     disabled={readySongs.length === 0}
@@ -214,13 +214,13 @@ export default function AudioSettings() {
                     }}
                   >
                     {isSongPlaying ? <Square size={12} /> : <Play size={12} />}
-                    {isSongPlaying ? 'Stop Song Playback' : 'Start Song Playback'}
+                    {isSongPlaying ? t("stopSongPlayback") : t("startSongPlayback")}
                   </button>
                 </div>
                 
                 {readySongs.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Select Song for Calibration</label>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t("selectSongForCalibration")}</label>
                     <select
                       value={selectedSongId}
                       onChange={(e) => {
@@ -245,21 +245,21 @@ export default function AudioSettings() {
                   </div>
                 ) : (
                   <div style={{ fontSize: '0.8rem', color: '#f87171', background: 'rgba(239, 68, 68, 0.05)', border: '1px dashed rgba(239, 68, 68, 0.2)', padding: '10px 12px', borderRadius: '6px' }}>
-                    No split songs found in your library. Please go to Ingestion & Processing and split a track first.
+                    {t("noSplitSongsForCalibration")}
                   </div>
                 )}
               </div>
             )}
 
             <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-              If singer monitoring (headphones) and audience master (speakers) sound out of sync (e.g. when using Bluetooth or wireless speakers), play the calibration tone or a song and adjust the delay until the notes merge into a single beat.
+              {t("calibrationInstructions")}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                <span>Relative Delay (Vocals vs Instrumental)</span>
+                <span>{t("relativeDelay")}</span>
                 <span style={{ fontWeight: 700, color: vocalsDelay === 0 ? 'var(--text-secondary)' : 'var(--secondary)' }}>
-                  {vocalsDelay === 0 ? '0 ms (Synchronized)' : vocalsDelay > 0 ? `+${vocalsDelay} ms (Vocals Lag)` : `${vocalsDelay} ms (Vocals Lead)`}
+                  {vocalsDelay === 0 ? t("synchronized") : vocalsDelay > 0 ? t("vocalsLag", { ms: vocalsDelay }) : t("vocalsLead", { ms: Math.abs(vocalsDelay) })}
                 </span>
               </div>
 
@@ -295,7 +295,7 @@ export default function AudioSettings() {
                   className="interactive-btn secondary-btn"
                   style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 700 }}
                 >
-                  Reset
+                  {t("reset")}
                 </button>
                 <button
                   onClick={() => updateDelay(Math.min(500, vocalsDelay + 10))}

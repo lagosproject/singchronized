@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
+import { t } from '../i18n';
 
 export function useLibrary() {
   const [songs, setSongs] = useState([]);
@@ -23,7 +24,7 @@ export function useLibrary() {
   }, [fetchSongs]);
 
   const deleteSong = async (id) => {
-    if (!confirm("Are you sure you want to delete this song? This will remove all files.")) return;
+    if (!confirm(t("confirmDeleteSong"))) return;
     try {
       await api.deleteSong(id);
       fetchSongs();

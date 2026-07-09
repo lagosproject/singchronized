@@ -1,6 +1,7 @@
 import { useApp } from '../../context/app-context';
 import { resolveMediaUrl } from '../../config';
 import { ArrowLeft, ArrowRight, Music } from 'lucide-react';
+import { t } from '../../i18n';
 
 export default function QueueCountdownOverlay() {
   const { queue } = useApp();
@@ -56,7 +57,7 @@ export default function QueueCountdownOverlay() {
       )}
 
       <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 1 }}>
-        <span style={{ fontSize: '1rem', color: 'var(--primary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em' }}>Up Next</span>
+        <span style={{ fontSize: '1rem', color: 'var(--primary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em' }}>{t("upNext")}</span>
         <h2 style={{ margin: 0, fontSize: '3rem', fontWeight: 900 }}>{nextSong.title}</h2>
         <p style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-secondary)' }}>{nextSong.artist}</p>
       </div>
@@ -106,7 +107,7 @@ export default function QueueCountdownOverlay() {
               </div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Past Song</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t("pastSong")}</span>
               <span style={{ fontSize: '0.95rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pastSong.title}</span>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pastSong.artist}</span>
             </div>
@@ -132,7 +133,7 @@ export default function QueueCountdownOverlay() {
           flexShrink: 0
         }}>
           <span style={{ fontSize: '4.5rem', fontWeight: 900, lineHeight: 1 }}>{transitionCountdown}</span>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Seconds</span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>{t("seconds")}</span>
         </div>
 
         {/* Next of Next Song Button */}
@@ -166,7 +167,7 @@ export default function QueueCountdownOverlay() {
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
-              <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Next of Next</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t("nextOfNext")}</span>
               <span style={{ fontSize: '0.95rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nextOfNextSong.title}</span>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nextOfNextSong.artist}</span>
             </div>
@@ -194,14 +195,14 @@ export default function QueueCountdownOverlay() {
           className="interactive-btn"
           style={{ padding: '14px 28px', fontSize: '1rem', borderRadius: '12px' }}
         >
-          Skip Countdown
+          {t("skipCountdown")}
         </button>
         <button
           onClick={cancelCountdown}
           className="interactive-btn secondary-btn"
           style={{ padding: '14px 28px', fontSize: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}
         >
-          Cancel Queue
+          {t("cancelQueue")}
         </button>
       </div>
     </div>

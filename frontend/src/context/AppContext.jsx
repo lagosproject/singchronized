@@ -8,6 +8,7 @@ import { useLibrary } from '../hooks/useLibrary';
 import { usePlayback } from '../hooks/usePlayback';
 import { usePlaylists } from '../hooks/usePlaylists';
 import { useQueue } from '../hooks/useQueue';
+import { t } from '../i18n';
 
 export function AppProvider({ children }) {
   const library = useLibrary();
@@ -32,7 +33,7 @@ export function AppProvider({ children }) {
 
   const playSong = async (id, keepQueue = false) => {
     if (devices.singerDevice === null || devices.audienceDevice === null) {
-      alert("Please select audio output devices first!");
+      alert(t("selectAudioDevicesFirst"));
       return;
     }
     try {

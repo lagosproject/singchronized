@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { t } from '../../i18n';
 
 const normalizeText = (text) => {
   if (!text) return '';
@@ -60,7 +61,7 @@ export default function ArtistChipInput({ chips, setChips, input, setInput, exis
 
   return (
     <div style={{ position: 'relative' }}>
-      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Artist Name</label>
+      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>{t("artistName")}</label>
       <div
         className="chip-input-container"
         style={{
@@ -138,7 +139,7 @@ export default function ArtistChipInput({ chips, setChips, input, setInput, exis
             // Allow click events on the autocomplete list to fire first
             setTimeout(() => setShowAutocomplete(false), 200);
           }}
-          placeholder={chips.length === 0 ? "e.g. Drake, Future" : ""}
+          placeholder={chips.length === 0 ? t("artistNamePlaceholder") : ""}
           style={{
             flex: 1,
             minWidth: '120px',

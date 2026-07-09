@@ -2,6 +2,7 @@ import { Mic, Play, ListPlus, Shuffle, Edit } from 'lucide-react';
 import { useApp } from '../../context/app-context';
 import { resolveMediaUrl } from '../../config';
 import SongRow from '../songs/SongRow';
+import { t } from '../../i18n';
 
 export default function PlaylistDetail({ playlist }) {
   const { playlists, playSong, queue } = useApp();
@@ -41,9 +42,9 @@ export default function PlaylistDetail({ playlist }) {
             )}
           </div>
           <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>Playlist</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>{t("playlist")}</span>
             <h2 style={{ margin: 0, fontSize: '2.25rem', fontWeight: 800 }}>{playlist.name}</h2>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{playlist.songs.length} tracks</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t("tracksCount", { count: playlist.songs.length })}</span>
           </div>
         </div>
 
@@ -55,7 +56,7 @@ export default function PlaylistDetail({ playlist }) {
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={playlist.songs.length === 0}
           >
-            <Play size={16} fill="white" /> Play All
+            <Play size={16} fill="white" /> {t("playAll")}
           </button>
           <button
             onClick={addAllToQueue}
@@ -63,7 +64,7 @@ export default function PlaylistDetail({ playlist }) {
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={playlist.songs.length === 0}
           >
-            <ListPlus size={16} /> Add to Queue
+            <ListPlus size={16} /> {t("addToQueue")}
           </button>
           <button
             onClick={shufflePlay}
@@ -71,11 +72,11 @@ export default function PlaylistDetail({ playlist }) {
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
             disabled={playlist.songs.length === 0}
           >
-            <Shuffle size={16} /> Shuffle
+            <Shuffle size={16} /> {t("shuffle")}
           </button>
           <button
             onClick={async () => {
-              const newName = prompt("Enter new name for playlist:", playlist.name);
+              const newName = prompt(t("enterNewPlaylistName"), playlist.name);
               if (newName && newName.trim() && newName.trim() !== playlist.name) {
                 await playlists.renamePlaylist(playlist.name, newName.trim());
               }
@@ -83,23 +84,23 @@ export default function PlaylistDetail({ playlist }) {
             className="interactive-btn secondary-btn"
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            <Edit size={16} /> Rename
+            <Edit size={16} /> {t("rename")}
           </button>
           <button
             onClick={() => playlists.deletePlaylist(playlist.name)}
             className="interactive-btn"
             style={{ background: 'var(--danger)', boxShadow: 'none' }}
           >
-            Delete Playlist
+            {t("deletePlaylist")}
           </button>
         </div>
       </div>
 
       <div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '16px' }}>Tracks</h3>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '16px' }}>{t("tracksLabel")}</h3>
         {playlist.songs.length === 0 ? (
           <div className="glass-panel" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            This playlist is empty. Delete it or create a new one with tracks to get started!
+            {t("playlistEmptyDesc")}
           </div>
         ) : (
           <div className="glass-panel" style={{ padding: '8px' }}>

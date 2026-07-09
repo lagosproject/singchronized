@@ -2,6 +2,7 @@ import { Mic, PlayCircle, Plus, Music } from 'lucide-react';
 import { useApp } from '../../context/app-context';
 import AddToPlaylistMenu from './AddToPlaylistMenu';
 import { resolveMediaUrl } from '../../config';
+import { t } from '../../i18n';
 
 /**
  * A clickable list row for a song with hover actions (add to queue / add to
@@ -45,11 +46,11 @@ export default function SongRow({ song, dropdownId, showPendingHint = true, show
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', justifyContent: 'flex-end', marginLeft: 'auto' }}>
         {isReady ? (
           <span style={{ fontSize: '0.75rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Mic size={12} /> Ready
+            <Mic size={12} /> {t("ready")}
           </span>
         ) : showPendingHint ? (
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Click to play
+            {t("clickToPlay")}
           </span>
         ) : null}
 
@@ -57,7 +58,7 @@ export default function SongRow({ song, dropdownId, showPendingHint = true, show
         <div className="song-action-btn" style={{ display: 'flex', gap: '6px', alignItems: 'center', position: 'relative' }}>
           <button
             onClick={(e) => { e.stopPropagation(); queue.addToQueue(song); }}
-            title="Add to Queue"
+            title={t("addSongToQueue")}
             style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
             onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
             onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
@@ -70,7 +71,7 @@ export default function SongRow({ song, dropdownId, showPendingHint = true, show
                 e.stopPropagation();
                 setActiveDropdownSongId(activeDropdownSongId === dropdownId ? null : dropdownId);
               }}
-              title="Add to Playlist"
+              title={t("addToPlaylist")}
               style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', position: 'relative', transition: 'color 0.2s' }}
               onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
               onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}

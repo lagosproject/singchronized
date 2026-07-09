@@ -4,6 +4,7 @@ import SongRow from '../songs/SongRow';
 import PlaylistCard from '../playlists/PlaylistCard';
 import ArtistCard from '../artists/ArtistCard';
 import ArtistRowImage from '../artists/ArtistRowImage';
+import { t } from '../../i18n';
 
 const FILTERS = ['all', 'songs', 'artists', 'playlists'];
 
@@ -103,7 +104,7 @@ export default function SearchResults({ query, onSelectArtist, onSelectPlaylist 
             onClick={() => setSearchFilter(filterType)}
             className={`filter-pill ${searchFilter === filterType ? 'active' : ''}`}
           >
-            {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
+            {t(filterType)}
           </button>
         ))}
       </div>
@@ -113,7 +114,7 @@ export default function SearchResults({ query, onSelectArtist, onSelectPlaylist 
         {searchFilter === 'all' && (
           <div>
             {mixedMatches.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '8px' }}>No matching results found.</p>
+              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '8px' }}>{t("noResultsFound")}</p>
             ) : (
               <div className="glass-panel" style={{ padding: '8px' }}>
                 {mixedMatches.map((item, index) => {
@@ -141,10 +142,10 @@ export default function SearchResults({ query, onSelectArtist, onSelectPlaylist 
                         <ArtistRowImage artistName={artistName} size={32} />
                         <div>
                           <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'white' }}>{artistName}</div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Artist</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t("artist")}</div>
                         </div>
                         <div style={{ textAlign: 'right', fontSize: '0.85rem', color: 'var(--text-secondary)', paddingRight: '8px' }}>
-                          {count} {count === 1 ? 'song' : 'songs'}
+                          {t("songsCount", { count })}
                         </div>
                       </div>
                     );
@@ -173,10 +174,10 @@ export default function SearchResults({ query, onSelectArtist, onSelectPlaylist 
                         </div>
                         <div>
                           <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'white' }}>{playlist.name}</div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Playlist</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t("playlist")}</div>
                         </div>
                         <div style={{ textAlign: 'right', fontSize: '0.85rem', color: 'var(--text-secondary)', paddingRight: '8px' }}>
-                          {playlist.songs.length} {playlist.songs.length === 1 ? 'track' : 'tracks'}
+                          {t("tracksCount", { count: playlist.songs.length })}
                         </div>
                       </div>
                     );
@@ -192,7 +193,7 @@ export default function SearchResults({ query, onSelectArtist, onSelectPlaylist 
         {searchFilter === 'songs' && (
           <div>
             {songMatches.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '8px' }}>No matching songs found.</p>
+              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '8px' }}>{t("noSongsFound")}</p>
             ) : (
               <div className="glass-panel" style={{ padding: '8px' }}>
                 {songMatches.map((song, index) => (
@@ -214,7 +215,7 @@ export default function SearchResults({ query, onSelectArtist, onSelectPlaylist 
         {searchFilter === 'artists' && (
           <div>
             {uniqueArtistMatches.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '8px' }}>No matching artists found.</p>
+              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '8px' }}>{t("noArtistsFound")}</p>
             ) : (
               <div className="spotify-grid">
                 {uniqueArtistMatches.map((artistName) => {
@@ -237,7 +238,7 @@ export default function SearchResults({ query, onSelectArtist, onSelectPlaylist 
         {searchFilter === 'playlists' && (
           <div>
             {playlistMatches.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '8px' }}>No matching playlists found.</p>
+              <p style={{ color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '8px' }}>{t("noPlaylistsFound")}</p>
             ) : (
               <div className="spotify-grid">
                 {playlistMatches.map(p => (

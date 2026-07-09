@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../api/client';
 import { useApp } from '../../context/app-context';
 import StatusBanner from '../common/StatusBanner';
+import { t } from '../../i18n';
 
 function LyricsEditor({ song }) {
   const { setEditingSong, library, playback } = useApp();
@@ -16,7 +17,7 @@ function LyricsEditor({ song }) {
       })
       .catch(err => {
         console.error("Failed to load raw lyrics:", err);
-        if (!cancelled) setSaveStatus({ type: 'error', message: 'Failed to load lyrics from server.' });
+        if (!cancelled) setSaveStatus({ type: 'error', message: t("failedLoadLyrics") });
       });
     return () => {
       cancelled = true;
@@ -24,10 +25,10 @@ function LyricsEditor({ song }) {
   }, [song.id]);
 
   const handleSave = async () => {
-    setSaveStatus({ type: 'info', message: 'Saving lyrics...' });
+    setSaveStatus({ type: 'info', message: t("savingLyrics") });
     try {
       await api.saveLyrics(song.id, lyricsText);
-      setSaveStatus({ type: 'success', message: 'Lyrics saved successfully!' });
+      setSaveStatus({ type: 'success', message: t("lyricsSaved") });
       library.fetchSongs();
       if (playback.playback.song_id === song.id) {
         playback.fetchLyrics(song.id);
@@ -35,7 +36,7 @@ function LyricsEditor({ song }) {
       setTimeout(() => setEditingSong(null), 1000);
     } catch (err) {
       console.error(err);
-      setSaveStatus({ type: 'error', message: 'Failed to save lyrics.' });
+      setSaveStatus({ type: 'error', message: t("failedSaveLyrics") });
     }
   };
 
@@ -66,7 +67,7 @@ function LyricsEditor({ song }) {
         {/* Modal Header */}
         <div style={{ padding: '24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>Lyrics Editor</h3>
+            <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>{t("lyricsEditor")}</h3>
             <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{song.title} — {song.artist}</span>
           </div>
           <button
@@ -74,14 +75,14 @@ function LyricsEditor({ song }) {
             className="interactive-btn secondary-btn"
             style={{ padding: '8px 12px', borderRadius: '8px' }}
           >
-            Cancel
+            {t("cancel")}
           </button>
         </div>
 
         {/* Modal Body */}
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, overflowY: 'auto' }}>
           <div style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid var(--primary-glow)', padding: '12px 16px', borderRadius: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            <span style={{ fontWeight: 700, color: 'white' }}>LRC Format Guide:</span> Sync each line using <strong>[Minutes:Seconds.Fraction] Lyric Text</strong> format (e.g. <code>[01:23.45] Hello World</code>). Correct spelling mistakes or adjust timestamps as needed.
+            <span style={{ fontWeight: 700, color: 'white' }}>{t("lrcFormatGuide")}</span> {t("lrcFormatGuideDesc1")}<strong>[Minutes:Seconds.Fraction] Lyric Text</strong>{t("lrcFormatGuideDesc2")}<code>[01:23.45] Hello World</code>{t("lrcFormatGuideDesc3")}
           </div>
 
           <textarea
@@ -113,14 +114,14 @@ function LyricsEditor({ song }) {
             onClick={() => setEditingSong(null)}
             className="interactive-btn secondary-btn"
           >
-            Discard
+            {t("discard")}
           </button>
           <button
             onClick={handleSave}
             className="interactive-btn"
             disabled={saveStatus && saveStatus.type === 'info'}
           >
-            Save Changes
+            {t("saveChanges")}
           </button>
         </div>
       </div>
