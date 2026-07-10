@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-10
+
 ### Added
+- Stereo L/R split mode for single-output audio setups: pan vocals left and instrumental right instead of dropping vocals when only one output device is available.
 - Audio latency calibration tool (tone or library-song based) with real-time dynamic delay adjustment via PortAudio DAC-time synchronization.
 - Single-device audio mode for setups with only one output device.
 - Internationalization (i18n) across all frontend components.
