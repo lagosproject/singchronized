@@ -26,9 +26,11 @@ async def upload_song(
     title: str = Form(...),
     artist: str = Form(...),
     file: UploadFile = File(...),
-    thumbnail: UploadFile = File(None)
+    thumbnail: UploadFile = File(None),
 ):
-    song_id = library.save_uploaded_song(title, artist, file.filename, file.file, thumbnail)
+    song_id = library.save_uploaded_song(
+        title, artist, file.filename, file.file, thumbnail
+    )
     return {"id": song_id, "message": "Song added successfully"}
 
 
@@ -60,7 +62,7 @@ def generate_lyrics(song_id: int, model_size: str = "base"):
         raise HTTPException(
             status_code=400,
             detail="Song must be separated (vocal split) before generating lyrics "
-                   "to ensure high transcription accuracy."
+            "to ensure high transcription accuracy.",
         )
 
     enqueue_lyrics(song_id, model_size)
@@ -92,9 +94,9 @@ def generate_lyrics_all(model_size: str = "base"):
 def get_artist_image(name: str):
     try:
         from ..services.image_provider import get_default_image_provider
+
         provider = get_default_image_provider()
         url = provider.get_artist_image(name)
         return {"image_url": url}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-

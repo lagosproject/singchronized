@@ -13,10 +13,7 @@ def parse_lrc(raw_text: str) -> list[dict]:
                 time_str = time_part.replace("[", "")
                 minutes, seconds = time_str.split(":")
                 total_seconds = int(minutes) * 60 + float(seconds)
-                lines.append({
-                    "time": total_seconds,
-                    "text": text_part.strip()
-                })
+                lines.append({"time": total_seconds, "text": text_part.strip()})
             except Exception:
                 pass
     return lines

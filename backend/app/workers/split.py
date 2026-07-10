@@ -8,6 +8,7 @@ from .subprocess_utils import stream_progress
 
 try:
     import certifi
+
     _CERTIFI_BUNDLE = certifi.where()
 except ImportError:
     _CERTIFI_BUNDLE = None
@@ -32,7 +33,9 @@ def _locate_output_tracks(output_dir: str, filename_no_ext: str):
     raise FileNotFoundError("Could not find Demucs output tracks (vocals/no_vocals).")
 
 
-def run_demucs_separation(song_id: int, original_path: str, output_dir: str, progress_callback=None):
+def run_demucs_separation(
+    song_id: int, original_path: str, output_dir: str, progress_callback=None
+):
     """Split a track into vocals.wav and instrumental.wav using Demucs."""
     try:
         database.update_song_status(song_id, split_status="PROCESSING")
@@ -41,8 +44,9 @@ def run_demucs_separation(song_id: int, original_path: str, output_dir: str, pro
         cmd = [
             *resolve_backend_command("demucs"),
             "--two-stems=vocals",
-            "-o", output_dir,
-            original_path
+            "-o",
+            output_dir,
+            original_path,
         ]
         print(f"Running Demucs: {' '.join(cmd)}")
 
@@ -67,7 +71,9 @@ def run_demucs_separation(song_id: int, original_path: str, output_dir: str, pro
             raise Exception(f"Demucs failed with exit code {process.returncode}")
 
         filename_no_ext = os.path.splitext(os.path.basename(original_path))[0]
-        vocals_source, no_vocals_source, model_name = _locate_output_tracks(output_dir, filename_no_ext)
+        vocals_source, no_vocals_source, model_name = _locate_output_tracks(
+            output_dir, filename_no_ext
+        )
 
         vocals_dest = os.path.join(output_dir, "vocals.wav")
         instrumental_dest = os.path.join(output_dir, "instrumental.wav")
@@ -79,13 +85,18 @@ def run_demucs_separation(song_id: int, original_path: str, output_dir: str, pro
         except Exception:
             pass
 
-        database.update_song_paths(song_id, vocals_path=vocals_dest, instrumental_path=instrumental_dest)
+        database.update_song_paths(
+            song_id, vocals_path=vocals_dest, instrumental_path=instrumental_dest
+        )
         database.update_song_status(song_id, split_status="COMPLETED")
         print(f"Demucs separation complete for song {song_id}")
 
-    except Exception as e:
+    except Exception:
         import traceback
+
         print(f"Error splitting song {song_id}:")
         traceback.print_exc()
-        database.update_song_status(song_id, split_status="FAILED", split_error=traceback.format_exc())
+        database.update_song_status(
+            song_id, split_status="FAILED", split_error=traceback.format_exc()
+        )
         raise

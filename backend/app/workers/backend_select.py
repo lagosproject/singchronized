@@ -22,11 +22,12 @@ def resolve_backend_command(subcommand: str) -> list:
         # Dev mode: prefer the current interpreter's installed demucs CLI.
         try:
             import demucs  # noqa: F401
+
             return [sys.executable, "-m", "demucs"]
         except ImportError:
             pass
 
-        if os.name == 'nt':
+        if os.name == "nt":
             venv_demucs = os.path.join(PROJECT_ROOT, ".venv", "Scripts", "demucs.exe")
         else:
             venv_demucs = os.path.join(PROJECT_ROOT, ".venv", "bin", "demucs")

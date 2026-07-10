@@ -6,11 +6,19 @@ from .backend_select import resolve_backend_command
 from .subprocess_utils import stream_progress
 
 
-def run_whisper_transcription(song_id: int, audio_path: str, output_lrc_path: str, model_size: str = "base", progress_callback=None):
+def run_whisper_transcription(
+    song_id: int,
+    audio_path: str,
+    output_lrc_path: str,
+    model_size: str = "base",
+    progress_callback=None,
+):
     """Transcribe audio into a synced .lrc file using faster-whisper (out-of-process,
     so it can use a downloaded GPU pack's torch build — see backend_select.py)."""
     try:
-        database.update_song_status(song_id, lyrics_status="PROCESSING", lyrics_model=model_size)
+        database.update_song_status(
+            song_id, lyrics_status="PROCESSING", lyrics_model=model_size
+        )
 
         cmd = [
             *resolve_backend_command("transcribe"),
@@ -33,15 +41,25 @@ def run_whisper_transcription(song_id: int, audio_path: str, output_lrc_path: st
 
         process.wait()
         if process.returncode != 0:
-            raise Exception(f"Whisper transcription failed with exit code {process.returncode}")
+            raise Exception(
+                f"Whisper transcription failed with exit code {process.returncode}"
+            )
 
         database.update_song_paths(song_id, lyrics_path=output_lrc_path)
-        database.update_song_status(song_id, lyrics_status="COMPLETED", lyrics_model=model_size)
+        database.update_song_status(
+            song_id, lyrics_status="COMPLETED", lyrics_model=model_size
+        )
         print(f"Whisper transcription completed for song {song_id}")
 
-    except Exception as e:
+    except Exception:
         import traceback
+
         print(f"Error transcribing song {song_id}:")
         traceback.print_exc()
-        database.update_song_status(song_id, lyrics_status="FAILED", lyrics_error=traceback.format_exc(), lyrics_model=model_size)
+        database.update_song_status(
+            song_id,
+            lyrics_status="FAILED",
+            lyrics_error=traceback.format_exc(),
+            lyrics_model=model_size,
+        )
         raise

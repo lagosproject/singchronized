@@ -7,6 +7,7 @@ Usage:
                                                         re-invoke this same
                                                         executable)
 """
+
 import multiprocessing
 import sys
 
@@ -15,8 +16,10 @@ def main():
     multiprocessing.freeze_support()
 
     import os
+
     if getattr(sys, "frozen", False):
         from backend.app.config import _user_data_dir
+
         log_dir = _user_data_dir()
         os.makedirs(log_dir, exist_ok=True)
         log_file = os.path.join(log_dir, "backend.log")
@@ -39,6 +42,7 @@ def main():
         torchaudio.save = _save_via_soundfile
 
         from demucs.separate import main as demucs_main
+
         demucs_main(sys.argv[2:])
         return
 
@@ -53,7 +57,9 @@ def main():
         def _print_progress(percent):
             print(f"{percent}%", flush=True)
 
-        transcribe_to_lrc(audio_path, output_lrc_path, model_size, progress_callback=_print_progress)
+        transcribe_to_lrc(
+            audio_path, output_lrc_path, model_size, progress_callback=_print_progress
+        )
         return
 
     import argparse

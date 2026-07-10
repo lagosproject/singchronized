@@ -8,7 +8,12 @@ def format_lrc_timestamp(seconds: float) -> str:
     return f"[{minutes:02d}:{rem_seconds:05.2f}]"
 
 
-def transcribe_to_lrc(audio_path: str, output_lrc_path: str, model_size: str = "base", progress_callback=None):
+def transcribe_to_lrc(
+    audio_path: str,
+    output_lrc_path: str,
+    model_size: str = "base",
+    progress_callback=None,
+):
     """Transcribe audio into a synced .lrc file using faster-whisper.
 
     Runs in whichever process/interpreter it's called from (bundled CPU

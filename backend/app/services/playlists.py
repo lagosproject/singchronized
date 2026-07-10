@@ -48,12 +48,14 @@ def list_playlists() -> list[dict]:
             if song:
                 playlist_songs.append(with_media_flags(dict(song)))
 
-        result.append({
-            "name": playlist_name,
-            "filename": filename,
-            "songs": playlist_songs,
-            "thumbnail_url": find_thumbnail_url(playlist_name)
-        })
+        result.append(
+            {
+                "name": playlist_name,
+                "filename": filename,
+                "songs": playlist_songs,
+                "thumbnail_url": find_thumbnail_url(playlist_name),
+            }
+        )
 
     return result
 
@@ -121,7 +123,9 @@ def save_thumbnail(name: str, upload_filename: str, upload_file) -> str:
 def rename_playlist(old_name: str, new_name: str) -> str:
     os.makedirs(PLAYLISTS_DIR, exist_ok=True)
 
-    safe_new_name = "".join(c for c in new_name if c.isalnum() or c in (" ", "_", "-")).strip()
+    safe_new_name = "".join(
+        c for c in new_name if c.isalnum() or c in (" ", "_", "-")
+    ).strip()
     if not safe_new_name:
         raise ValueError("Invalid new playlist name")
 
@@ -150,4 +154,3 @@ def rename_playlist(old_name: str, new_name: str) -> str:
                 pass
 
     return safe_new_name
-

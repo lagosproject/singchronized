@@ -13,7 +13,9 @@ def _detect_nvidia_gpu():
     try:
         result = subprocess.run(
             ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
-            capture_output=True, text=True, timeout=5
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0 and result.stdout.strip():
             return True, result.stdout.strip().splitlines()[0].strip()

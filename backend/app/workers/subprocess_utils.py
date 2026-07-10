@@ -3,7 +3,7 @@ import re
 
 def stream_progress(process, label: str, progress_callback=None):
     """Parse percentages from CLI/tqdm-style subprocess output and log all lines."""
-    percent_re = re.compile(r'(\d+)%')
+    percent_re = re.compile(r"(\d+)%")
     buffer = []
 
     def flush():
@@ -20,7 +20,7 @@ def stream_progress(process, label: str, progress_callback=None):
         if not char:
             flush()
             break
-        if char in ('\r', '\n'):
+        if char in ("\r", "\n"):
             flush()
         else:
             buffer.append(char)

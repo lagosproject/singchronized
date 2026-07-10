@@ -1,12 +1,10 @@
-import queue
-import threading
 import time
 
 import numpy as np
 import sounddevice as sd
 import soundfile as sf
 
-from ..config import BLOCKSIZE, BUFFERSIZE
+from ..config import BLOCKSIZE
 from .devices import open_target, pipewire_available
 
 
@@ -28,25 +26,33 @@ def resample_audio(data, orig_sr, target_sr):
 
 
 class AudioStreamThread:
-    def __init__(self, filepath, device_id, volume=1.0, delay_seconds=0.0, is_vocals=False, player=None):
+    def __init__(
+        self,
+        filepath,
+        device_id,
+        volume=1.0,
+        delay_seconds=0.0,
+        is_vocals=False,
+        player=None,
+    ):
         self.filepath = filepath
         self.device_id = device_id
         self.volume = volume
         self.delay_seconds = delay_seconds
         self.is_vocals = is_vocals
         self.player = player
-        
+
         self.is_paused = True
         self.is_finished = False
         self.is_ready = False
-        
+
         self.samplerate = 44100
         self.total_frames = 0
         self.channels = 2
         self.current_frame = 0
         self.stream = None
         self.audio_data = None
-        
+
         self.seek_target_frame = None
         self.silent_frames_remaining = 0
 
@@ -56,7 +62,7 @@ class AudioStreamThread:
                 self.samplerate = f.samplerate
                 self.total_frames = len(f)
                 self.channels = f.channels
-                self.audio_data = f.read(dtype='float32')
+                self.audio_data = f.read(dtype="float32")
         except Exception as e:
             print(f"Error loading audio file: {e}")
             self.is_finished = True
@@ -66,18 +72,22 @@ class AudioStreamThread:
             # Query device info to get native default sample rate
             try:
                 if pa_device is None:
-                    device_info = sd.query_devices(kind='output')
+                    device_info = sd.query_devices(kind="output")
                 else:
-                    device_info = sd.query_devices(pa_device, 'output')
-                target_samplerate = int(device_info.get('default_samplerate', 44100))
+                    device_info = sd.query_devices(pa_device, "output")
+                target_samplerate = int(device_info.get("default_samplerate", 44100))
             except Exception:
                 target_samplerate = self.samplerate
 
         # Resampling is CPU-bound and doesn't need PIPEWIRE_NODE set, so it
         # runs outside open_target to keep that critical section short.
         if self.samplerate != target_samplerate:
-            print(f"Resampling audio stream from {self.samplerate}Hz to {target_samplerate}Hz")
-            self.audio_data = resample_audio(self.audio_data, self.samplerate, target_samplerate)
+            print(
+                f"Resampling audio stream from {self.samplerate}Hz to {target_samplerate}Hz"
+            )
+            self.audio_data = resample_audio(
+                self.audio_data, self.samplerate, target_samplerate
+            )
             self.samplerate = target_samplerate
             self.total_frames = len(self.audio_data)
 
@@ -92,8 +102,8 @@ class AudioStreamThread:
                 blocksize=BLOCKSIZE,
                 device=pa_device,
                 channels=self.channels,
-                dtype='float32',
-                callback=self.callback
+                dtype="float32",
+                callback=self.callback,
             )
         self.stream.start()
         self.is_ready = True
@@ -137,23 +147,23 @@ class AudioStreamThread:
             silence_len = min(frames, self.silent_frames_remaining)
             outdata[:silence_len].fill(0)
             self.silent_frames_remaining -= silence_len
-            
+
             if silence_len < frames:
                 read_len = frames - silence_len
                 end_idx = min(self.total_frames, self.current_frame + read_len)
-                data = self.audio_data[self.current_frame:end_idx]
-                outdata[silence_len:silence_len+len(data)] = data * self.volume
+                data = self.audio_data[self.current_frame : end_idx]
+                outdata[silence_len : silence_len + len(data)] = data * self.volume
                 self.current_frame = end_idx
                 if len(data) < read_len:
-                    outdata[silence_len+len(data):].fill(0)
+                    outdata[silence_len + len(data) :].fill(0)
                     self.is_finished = True
         else:
             end_idx = min(self.total_frames, self.current_frame + frames)
-            data = self.audio_data[self.current_frame:end_idx]
-            outdata[:len(data)] = data * self.volume
+            data = self.audio_data[self.current_frame : end_idx]
+            outdata[: len(data)] = data * self.volume
             self.current_frame = end_idx
             if len(data) < frames:
-                outdata[len(data):].fill(0)
+                outdata[len(data) :].fill(0)
                 self.is_finished = True
 
 
@@ -169,8 +179,17 @@ class SplitChannelStreamThread:
     marks the instances that need the volume/delay special-casing it does need.
     """
 
-    def __init__(self, vocals_path, instrumental_path, device_id, singer_volume=1.0, audience_volume=1.0,
-                 vocals_delay_seconds=0.0, instrumental_delay_seconds=0.0, player=None):
+    def __init__(
+        self,
+        vocals_path,
+        instrumental_path,
+        device_id,
+        singer_volume=1.0,
+        audience_volume=1.0,
+        vocals_delay_seconds=0.0,
+        instrumental_delay_seconds=0.0,
+        player=None,
+    ):
         self.vocals_path = vocals_path
         self.instrumental_path = instrumental_path
         self.device_id = device_id
@@ -203,7 +222,7 @@ class SplitChannelStreamThread:
     def _load_mono(filepath):
         with sf.SoundFile(filepath) as f:
             samplerate = f.samplerate
-            data = f.read(dtype='float32')
+            data = f.read(dtype="float32")
         if data.ndim > 1:
             data = data.mean(axis=1).astype(np.float32)
         return data, samplerate
@@ -220,31 +239,37 @@ class SplitChannelStreamThread:
         with open_target(self.device_id) as pa_device:
             try:
                 if pa_device is None:
-                    device_info = sd.query_devices(kind='output')
+                    device_info = sd.query_devices(kind="output")
                 else:
-                    device_info = sd.query_devices(pa_device, 'output')
-                target_samplerate = int(device_info.get('default_samplerate', 44100))
+                    device_info = sd.query_devices(pa_device, "output")
+                target_samplerate = int(device_info.get("default_samplerate", 44100))
             except Exception:
                 target_samplerate = vocals_sr
 
         if vocals_sr != target_samplerate:
             vocals_data = resample_audio(vocals_data, vocals_sr, target_samplerate)
         if instrumental_sr != target_samplerate:
-            instrumental_data = resample_audio(instrumental_data, instrumental_sr, target_samplerate)
+            instrumental_data = resample_audio(
+                instrumental_data, instrumental_sr, target_samplerate
+            )
         self.samplerate = target_samplerate
 
         length = max(len(vocals_data), len(instrumental_data))
         if len(vocals_data) < length:
             vocals_data = np.pad(vocals_data, (0, length - len(vocals_data)))
         if len(instrumental_data) < length:
-            instrumental_data = np.pad(instrumental_data, (0, length - len(instrumental_data)))
+            instrumental_data = np.pad(
+                instrumental_data, (0, length - len(instrumental_data))
+            )
 
         self.vocals_data = vocals_data
         self.instrumental_data = instrumental_data
         self.total_frames = length
 
         self._vocals_silent_remaining = int(self.vocals_delay_seconds * self.samplerate)
-        self._instrumental_silent_remaining = int(self.instrumental_delay_seconds * self.samplerate)
+        self._instrumental_silent_remaining = int(
+            self.instrumental_delay_seconds * self.samplerate
+        )
 
     def start_stream(self):
         if self.is_finished:
@@ -255,8 +280,8 @@ class SplitChannelStreamThread:
                 blocksize=BLOCKSIZE,
                 device=pa_device,
                 channels=2,
-                dtype='float32',
-                callback=self.callback
+                dtype="float32",
+                callback=self.callback,
             )
         self.stream.start()
         self.is_ready = True
@@ -294,13 +319,13 @@ class SplitChannelStreamThread:
                 read_len = frames - silence_len
                 end_idx = min(len(data), frame_pos + read_len)
                 chunk = data[frame_pos:end_idx]
-                out[silence_len:silence_len + len(chunk)] = chunk * volume
+                out[silence_len : silence_len + len(chunk)] = chunk * volume
                 frame_pos = end_idx
                 exhausted = len(chunk) < read_len
         else:
             end_idx = min(len(data), frame_pos + frames)
             chunk = data[frame_pos:end_idx]
-            out[:len(chunk)] = chunk * volume
+            out[: len(chunk)] = chunk * volume
             frame_pos = end_idx
             exhausted = len(chunk) < frames
 
@@ -314,19 +339,38 @@ class SplitChannelStreamThread:
         if self.seek_target_frame is not None:
             self.current_frame = self.seek_target_frame
             self._vocals_frame = self.seek_target_frame
-            self._vocals_silent_remaining = int(self.vocals_delay_seconds * self.samplerate)
-            self._instrumental_silent_remaining = int(self.instrumental_delay_seconds * self.samplerate)
+            self._vocals_silent_remaining = int(
+                self.vocals_delay_seconds * self.samplerate
+            )
+            self._instrumental_silent_remaining = int(
+                self.instrumental_delay_seconds * self.samplerate
+            )
             self.seek_target_frame = None
 
         if self.is_paused:
             outdata.fill(0)
             return
 
-        left, self._vocals_frame, self._vocals_silent_remaining, vocals_done = self._read_channel(
-            self.vocals_data, self._vocals_frame, frames, self._vocals_silent_remaining, self.singer_volume
+        left, self._vocals_frame, self._vocals_silent_remaining, vocals_done = (
+            self._read_channel(
+                self.vocals_data,
+                self._vocals_frame,
+                frames,
+                self._vocals_silent_remaining,
+                self.singer_volume,
+            )
         )
-        right, self.current_frame, self._instrumental_silent_remaining, instrumental_done = self._read_channel(
-            self.instrumental_data, self.current_frame, frames, self._instrumental_silent_remaining, self.audience_volume
+        (
+            right,
+            self.current_frame,
+            self._instrumental_silent_remaining,
+            instrumental_done,
+        ) = self._read_channel(
+            self.instrumental_data,
+            self.current_frame,
+            frames,
+            self._instrumental_silent_remaining,
+            self.audience_volume,
         )
 
         outdata[:, 0] = left
@@ -373,8 +417,12 @@ class CalibrationStreamCallback:
         fade_in_mask = cycle_pos < fade_len
         envelope[fade_in_mask] = cycle_pos[fade_in_mask] / fade_len
 
-        fade_out_mask = (cycle_pos >= (self.duration_samples - fade_len)) & (cycle_pos < self.duration_samples)
-        envelope[fade_out_mask] = (self.duration_samples - cycle_pos[fade_out_mask]) / fade_len
+        fade_out_mask = (cycle_pos >= (self.duration_samples - fade_len)) & (
+            cycle_pos < self.duration_samples
+        )
+        envelope[fade_out_mask] = (
+            self.duration_samples - cycle_pos[fade_out_mask]
+        ) / fade_len
 
         envelope[cycle_pos >= self.duration_samples] = 0.0
         envelope[t_shifted < 0] = 0.0
@@ -413,15 +461,27 @@ class KaraokePlayer:
             try:
                 import subprocess
                 import re
-                res = subprocess.run(["amixer", "-c", "0", "sget", "Master"], capture_output=True, text=True)
+
+                res = subprocess.run(
+                    ["amixer", "-c", "0", "sget", "Master"],
+                    capture_output=True,
+                    text=True,
+                )
                 if res.returncode == 0:
-                    match = re.search(r'\[(\d+)%\]', res.stdout)
+                    match = re.search(r"\[(\d+)%\]", res.stdout)
                     if match:
                         self.audience_volume = float(match.group(1)) / 100.0
             except Exception:
                 pass
 
-    def start_song(self, song_path, karaoke_path, singer_device, audience_device, stereo_split=False):
+    def start_song(
+        self,
+        song_path,
+        karaoke_path,
+        singer_device,
+        audience_device,
+        stereo_split=False,
+    ):
         if getattr(self, "calibration_active", False):
             self.stop_calibration()
 
@@ -437,7 +497,7 @@ class KaraokePlayer:
         self.audience_device = audience_device
 
         single_device_mode = singer_device == audience_device
-        
+
         vocals_delay = getattr(self, "vocals_delay", 0.0)
         t1_delay = -vocals_delay if vocals_delay < 0 else 0.0
         t2_delay = vocals_delay if vocals_delay > 0 else 0.0
@@ -464,16 +524,49 @@ class KaraokePlayer:
                     audience_volume=self.audience_volume,
                     vocals_delay_seconds=t1_delay,
                     instrumental_delay_seconds=t2_delay,
-                    player=self
+                    player=self,
                 )
             else:
                 # One output: skip vocals to avoid mixing both stems into the
                 # same device. Fall back to the full mix when stems aren't ready yet.
                 play_path = karaoke_path or song_path
-                self.thread2 = AudioStreamThread(play_path, audience_device, volume=self.audience_volume, delay_seconds=t2_delay, is_vocals=False, player=self) if play_path else None
+                self.thread2 = (
+                    AudioStreamThread(
+                        play_path,
+                        audience_device,
+                        volume=self.audience_volume,
+                        delay_seconds=t2_delay,
+                        is_vocals=False,
+                        player=self,
+                    )
+                    if play_path
+                    else None
+                )
         else:
-            self.thread1 = AudioStreamThread(song_path, singer_device, volume=self.singer_volume, delay_seconds=t1_delay, is_vocals=True, player=self) if song_path else None
-            self.thread2 = AudioStreamThread(karaoke_path, audience_device, volume=self.audience_volume, delay_seconds=t2_delay, is_vocals=False, player=self) if karaoke_path else None
+            self.thread1 = (
+                AudioStreamThread(
+                    song_path,
+                    singer_device,
+                    volume=self.singer_volume,
+                    delay_seconds=t1_delay,
+                    is_vocals=True,
+                    player=self,
+                )
+                if song_path
+                else None
+            )
+            self.thread2 = (
+                AudioStreamThread(
+                    karaoke_path,
+                    audience_device,
+                    volume=self.audience_volume,
+                    delay_seconds=t2_delay,
+                    is_vocals=False,
+                    player=self,
+                )
+                if karaoke_path
+                else None
+            )
 
         try:
             if self.thread1:
@@ -485,7 +578,7 @@ class KaraokePlayer:
                 self.thread1.start_stream()
             if self.thread2:
                 self.thread2.start_stream()
-                
+
             # Both streams are loaded and running their callbacks, but are paused (outputting silence).
             # Unpause them simultaneously to guarantee perfect microsecond sync.
             if self.thread1:
@@ -559,7 +652,18 @@ class KaraokePlayer:
         if not pipewire_available():
             try:
                 import subprocess
-                subprocess.run(["amixer", "-c", "0", "sset", "Master", f"{int(self.audience_volume * 100)}%"], capture_output=True)
+
+                subprocess.run(
+                    [
+                        "amixer",
+                        "-c",
+                        "0",
+                        "sset",
+                        "Master",
+                        f"{int(self.audience_volume * 100)}%",
+                    ],
+                    capture_output=True,
+                )
             except Exception:
                 pass
 
@@ -628,7 +732,7 @@ class KaraokePlayer:
             "duration": duration,
             "singer_volume": self.singer_volume,
             "audience_volume": self.audience_volume,
-            "vocals_delay": getattr(self, "vocals_delay", 0.0)
+            "vocals_delay": getattr(self, "vocals_delay", 0.0),
         }
 
     def start_calibration(self, singer_device, audience_device):
@@ -639,55 +743,65 @@ class KaraokePlayer:
         self.calibration_active = True
         self.calibration_streams = []
 
-        with open_target(singer_device) as pa_singer, open_target(audience_device) as pa_audience:
+        with (
+            open_target(singer_device) as pa_singer,
+            open_target(audience_device) as pa_audience,
+        ):
             try:
                 singer_channels = 2
                 audience_channels = 2
                 if isinstance(pa_singer, int):
                     info = sd.query_devices(pa_singer)
-                    singer_channels = min(2, info.get('max_output_channels', 2))
+                    singer_channels = min(2, info.get("max_output_channels", 2))
                 if isinstance(pa_audience, int):
                     info = sd.query_devices(pa_audience)
-                    audience_channels = min(2, info.get('max_output_channels', 2))
+                    audience_channels = min(2, info.get("max_output_channels", 2))
 
                 single_device = pa_singer == pa_audience
 
                 if single_device:
-                    cb_audience = CalibrationStreamCallback(self, is_singer=False, channels=audience_channels)
+                    cb_audience = CalibrationStreamCallback(
+                        self, is_singer=False, channels=audience_channels
+                    )
                     stream_audience = sd.OutputStream(
                         device=pa_audience,
                         samplerate=samplerate,
                         channels=audience_channels,
-                        dtype='float32',
-                        callback=cb_audience.callback
+                        dtype="float32",
+                        callback=cb_audience.callback,
                     )
                     stream_audience.start()
                     self.calibration_streams.append(stream_audience)
                 else:
-                    cb_singer = CalibrationStreamCallback(self, is_singer=True, channels=singer_channels)
+                    cb_singer = CalibrationStreamCallback(
+                        self, is_singer=True, channels=singer_channels
+                    )
                     stream_singer = sd.OutputStream(
                         device=pa_singer,
                         samplerate=samplerate,
                         channels=singer_channels,
-                        dtype='float32',
-                        callback=cb_singer.callback
+                        dtype="float32",
+                        callback=cb_singer.callback,
                     )
-                    
-                    cb_audience = CalibrationStreamCallback(self, is_singer=False, channels=audience_channels)
+
+                    cb_audience = CalibrationStreamCallback(
+                        self, is_singer=False, channels=audience_channels
+                    )
                     stream_audience = sd.OutputStream(
                         device=pa_audience,
                         samplerate=samplerate,
                         channels=audience_channels,
-                        dtype='float32',
-                        callback=cb_audience.callback
+                        dtype="float32",
+                        callback=cb_audience.callback,
                     )
-                    
+
                     stream_singer.start()
                     stream_audience.start()
                     self.calibration_streams.append(stream_singer)
                     self.calibration_streams.append(stream_audience)
             except Exception as e:
                 import traceback
+
                 try:
                     with open("backend_error.log", "w") as f:
                         f.write(f"Error starting calibration streams: {e}\n")

@@ -42,5 +42,3 @@ class DelayRequest(BaseModel):
 class CalibrationStartRequest(BaseModel):
     singer_device: Union[int, str]
     audience_device: Union[int, str]
-
-

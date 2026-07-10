@@ -30,7 +30,9 @@ _pipewire_available = None
 def pipewire_available():
     global _pipewire_available
     if _pipewire_available is None:
-        _pipewire_available = shutil.which("pw-dump") is not None and len(get_pipewire_sinks()) > 0
+        _pipewire_available = (
+            shutil.which("pw-dump") is not None and len(get_pipewire_sinks()) > 0
+        )
     return _pipewire_available
 
 
@@ -53,10 +55,12 @@ def get_pipewire_sinks():
         node_name = props.get("node.name")
         if not node_name:
             continue
-        sinks.append({
-            "node_name": node_name,
-            "description": props.get("node.description") or node_name,
-        })
+        sinks.append(
+            {
+                "node_name": node_name,
+                "description": props.get("node.description") or node_name,
+            }
+        )
     return sinks
 
 
@@ -77,7 +81,7 @@ def open_target(device_id):
     create its stream inside this context.
     """
     if isinstance(device_id, str) and device_id.startswith(PW_PREFIX):
-        node_name = device_id[len(PW_PREFIX):]
+        node_name = device_id[len(PW_PREFIX) :]
         with _route_lock:
             previous = os.environ.get("PIPEWIRE_NODE")
             os.environ["PIPEWIRE_NODE"] = node_name
@@ -95,45 +99,46 @@ def open_target(device_id):
 
 
 def clean_device_name(name):
-    if name == 'default':
-        return 'System Default Device (Automatic Routing)'
-    if name == 'pipewire':
-        return 'PipeWire Sound Server (All Outputs)'
-    if name == 'pulse':
-        return 'PulseAudio Sound Server (All Outputs)'
-    if name == 'sysdefault':
-        return 'ALSA System Default'
-    if name == 'dmix':
-        return 'ALSA Direct Mixer (dmix)'
-    if name == 'front':
-        return 'Analog Front Speakers'
-    if name.startswith('surround'):
-        num_channels = name.replace('surround', '')
-        if num_channels == '40':
-            return '4.0 Surround Sound'
-        if num_channels == '51':
-            return '5.1 Surround Sound'
-        if num_channels == '71':
-            return '7.1 Surround Sound'
-        return f'{num_channels} Surround Sound'
-    if name == 'hdmi':
-        return 'HDMI Audio Output (Generic)'
+    if name == "default":
+        return "System Default Device (Automatic Routing)"
+    if name == "pipewire":
+        return "PipeWire Sound Server (All Outputs)"
+    if name == "pulse":
+        return "PulseAudio Sound Server (All Outputs)"
+    if name == "sysdefault":
+        return "ALSA System Default"
+    if name == "dmix":
+        return "ALSA Direct Mixer (dmix)"
+    if name == "front":
+        return "Analog Front Speakers"
+    if name.startswith("surround"):
+        num_channels = name.replace("surround", "")
+        if num_channels == "40":
+            return "4.0 Surround Sound"
+        if num_channels == "51":
+            return "5.1 Surround Sound"
+        if num_channels == "71":
+            return "7.1 Surround Sound"
+        return f"{num_channels} Surround Sound"
+    if name == "hdmi":
+        return "HDMI Audio Output (Generic)"
 
     import re
-    match = re.match(r'^([^:]+):\s*([^(]+)\s*\((hw:\d+,\d+)\)$', name)
+
+    match = re.match(r"^([^:]+):\s*([^(]+)\s*\((hw:\d+,\d+)\)$", name)
     if match:
         card, subdevice, hw = match.groups()
         card = card.strip()
         subdevice = subdevice.strip()
 
-        if 'Intel' in card or 'PCH' in card:
-            card_friendly = 'Built-in Audio'
+        if "Intel" in card or "PCH" in card:
+            card_friendly = "Built-in Audio"
         else:
             card_friendly = card
 
-        if 'Analog' in subdevice:
+        if "Analog" in subdevice:
             return f"{card_friendly} - Analog Output ({hw})"
-        if 'HDMI' in subdevice or 'HDMI' in card:
+        if "HDMI" in subdevice or "HDMI" in card:
             return f"{card_friendly} - HDMI Digital Output ({hw})"
 
         return f"{card_friendly} - {subdevice} ({hw})"
@@ -146,13 +151,16 @@ def get_devices():
     # individually routable output (analog jack, HDMI, Bluetooth, USB, ...).
     sinks = get_pipewire_sinks() if shutil.which("pw-dump") else []
     if sinks:
-        return [{
-            "index": f"{PW_PREFIX}{sink['node_name']}",
-            "name": sink["description"],
-            "raw_name": sink["node_name"],
-            "hostapi": "pipewire",
-            "max_output_channels": 2,
-        } for sink in sinks]
+        return [
+            {
+                "index": f"{PW_PREFIX}{sink['node_name']}",
+                "name": sink["description"],
+                "raw_name": sink["node_name"],
+                "hostapi": "pipewire",
+                "max_output_channels": 2,
+            }
+            for sink in sinks
+        ]
 
     # Re-initialize PortAudio to get an updated list of devices if idle.
     # The whole check-and-reinit sequence is serialized through _route_lock so
@@ -160,17 +168,23 @@ def get_devices():
     # once, and is_starting/is_playing/calibration_active must all be false
     # so we never tear down PortAudio while a stream is being opened elsewhere.
     from .player import player
+
     with _route_lock:
         is_tone_playing = (time.time() - _last_test_tone_time) < 0.8
-        if (not player.is_playing and not getattr(player, "is_starting", False)
-                and not getattr(player, "calibration_active", False) and not is_tone_playing):
+        if (
+            not player.is_playing
+            and not getattr(player, "is_starting", False)
+            and not getattr(player, "calibration_active", False)
+            and not is_tone_playing
+        ):
             try:
                 sd._terminate()
                 time.sleep(0.2)  # Give driver time to settle
                 sd._initialize()
-            except Exception as e:
+            except Exception:
                 import traceback
-                print(f"Error refreshing PortAudio devices:")
+
+                print("Error refreshing PortAudio devices:")
                 traceback.print_exc()
 
         devices = sd.query_devices()
@@ -178,16 +192,18 @@ def get_devices():
     result = []
     for idx, device in enumerate(devices):
         # We look for output devices
-        if device['max_output_channels'] > 0:
+        if device["max_output_channels"] > 0:
             raw_name = device["name"]
             display_name = clean_device_name(raw_name)
-            result.append({
-                "index": idx,
-                "name": display_name,
-                "raw_name": raw_name,
-                "hostapi": device["hostapi"],
-                "max_output_channels": device["max_output_channels"]
-            })
+            result.append(
+                {
+                    "index": idx,
+                    "name": display_name,
+                    "raw_name": raw_name,
+                    "hostapi": device["hostapi"],
+                    "max_output_channels": device["max_output_channels"],
+                }
+            )
     return result
 
 
@@ -199,27 +215,33 @@ def play_test_tone(device_id):
     # the same lock for pw: routing) so this never races another caller's
     # terminate/reinit or a stream being opened elsewhere.
     from .player import player
+
     with _route_lock:
         now = time.time()
         is_tone_playing = (now - _last_test_tone_time) < 0.8
         _last_test_tone_time = now
-        if (not player.is_playing and not getattr(player, "is_starting", False)
-                and not getattr(player, "calibration_active", False) and not is_tone_playing):
+        if (
+            not player.is_playing
+            and not getattr(player, "is_starting", False)
+            and not getattr(player, "calibration_active", False)
+            and not is_tone_playing
+        ):
             try:
                 sd._terminate()
                 time.sleep(0.2)  # Give driver time to settle
                 sd._initialize()
-            except Exception as e:
+            except Exception:
                 import traceback
-                print(f"Error refreshing PortAudio devices before test tone:")
+
+                print("Error refreshing PortAudio devices before test tone:")
                 traceback.print_exc()
 
     try:
         with open_target(device_id) as pa_device:
             if isinstance(pa_device, int):
                 device_info = sd.query_devices(pa_device)
-                max_channels = device_info.get('max_output_channels', 2)
-                samplerate = int(device_info.get('default_samplerate', 44100))
+                max_channels = device_info.get("max_output_channels", 2)
+                samplerate = int(device_info.get("default_samplerate", 44100))
             else:
                 max_channels = 2
                 samplerate = 44100
@@ -235,9 +257,9 @@ def play_test_tone(device_id):
             # sd.play opens the stream before returning, while PIPEWIRE_NODE
             # is still set, so the tone reaches the selected sink
             sd.play(tone, samplerate=samplerate, device=pa_device)
-    except Exception as e:
+    except Exception:
         import traceback
+
         print(f"Error playing test tone on device {device_id}:")
         traceback.print_exc()
         raise
-

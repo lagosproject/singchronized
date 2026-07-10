@@ -11,16 +11,20 @@ _task_queue = queue.Queue()
 _worker_thread = None
 
 
-def report_progress(song_id: int, action: str, progress: int, status: str = "PROCESSING"):
-    manager.broadcast_threadsafe({
-        "type": "progress_update",
-        "data": {
-            "song_id": song_id,
-            "action": action,
-            "progress": progress,
-            "status": status
+def report_progress(
+    song_id: int, action: str, progress: int, status: str = "PROCESSING"
+):
+    manager.broadcast_threadsafe(
+        {
+            "type": "progress_update",
+            "data": {
+                "song_id": song_id,
+                "action": action,
+                "progress": progress,
+                "status": status,
+            },
         }
-    })
+    )
 
 
 def _run_split(song_id: int):
@@ -34,10 +38,12 @@ def _run_split(song_id: int):
             song_id,
             song["original_path"],
             song_folder,
-            progress_callback=lambda percent: report_progress(song_id, "split", percent, "PROCESSING")
+            progress_callback=lambda percent: report_progress(
+                song_id, "split", percent, "PROCESSING"
+            ),
         )
         report_progress(song_id, "split", 100, "COMPLETED")
-    except Exception as e:
+    except Exception:
         report_progress(song_id, "split", 0, "FAILED")
         raise
 
@@ -59,10 +65,12 @@ def _run_lyrics(song_id: int, model_size: str):
             audio_path,
             output_lrc,
             model_size,
-            progress_callback=lambda percent: report_progress(song_id, "lyrics", percent, "PROCESSING")
+            progress_callback=lambda percent: report_progress(
+                song_id, "lyrics", percent, "PROCESSING"
+            ),
         )
         report_progress(song_id, "lyrics", 100, "COMPLETED")
-    except Exception as e:
+    except Exception:
         report_progress(song_id, "lyrics", 0, "FAILED")
         raise
 
@@ -81,9 +89,10 @@ def _process_tasks():
                 _run_lyrics(task["song_id"], task.get("model_size", "base"))
 
             _task_queue.task_done()
-        except Exception as e:
+        except Exception:
             import traceback
-            print(f"Error in task worker:")
+
+            print("Error in task worker:")
             traceback.print_exc()
 
 

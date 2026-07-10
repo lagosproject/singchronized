@@ -17,7 +17,9 @@ def play_song(req: PlayRequest):
 
     # Fall back to the original mix for the singer if vocals were not split yet
     vocals_ready = bool(song["vocals_path"] and os.path.exists(song["vocals_path"]))
-    instrumental_ready = bool(song["instrumental_path"] and os.path.exists(song["instrumental_path"]))
+    instrumental_ready = bool(
+        song["instrumental_path"] and os.path.exists(song["instrumental_path"])
+    )
     vocals = song["vocals_path"] if vocals_ready else song["original_path"]
     instrumental = song["instrumental_path"] if instrumental_ready else None
 
@@ -29,15 +31,18 @@ def play_song(req: PlayRequest):
             audience_device=req.audience_device,
             # Only honor the L/R split request when real stems exist -
             # never split the raw mix against nothing.
-            stereo_split=req.stereo_split and vocals_ready and instrumental_ready
+            stereo_split=req.stereo_split and vocals_ready and instrumental_ready,
         )
         player.current_song_id = req.song_id
     except Exception as e:
         import traceback
         import sys
+
         print("Failed to start song playback:", file=sys.stderr)
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Failed to start song playback: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to start song playback: {str(e)}"
+        )
 
     return {"message": "Playback started", "status": player.get_status()}
 
@@ -77,7 +82,7 @@ def set_playback_volume(req: VolumeRequest):
     return {
         "message": "Volumes updated",
         "singer_volume": player.singer_volume,
-        "audience_volume": player.audience_volume
+        "audience_volume": player.audience_volume,
     }
 
 
@@ -94,10 +99,9 @@ async def playback_websocket(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         # Send initial status
-        await websocket.send_text(json.dumps({
-            "type": "playback_status",
-            "data": player.get_status()
-        }))
+        await websocket.send_text(
+            json.dumps({"type": "playback_status", "data": player.get_status()})
+        )
         while True:
             # Keep socket alive
             await websocket.receive_text()

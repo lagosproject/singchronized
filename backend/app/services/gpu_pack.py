@@ -26,7 +26,11 @@ def _asset_suffix() -> str:
 
 
 def _exe_name() -> str:
-    return "singchronized-backend.exe" if sys.platform == "win32" else "singchronized-backend"
+    return (
+        "singchronized-backend.exe"
+        if sys.platform == "win32"
+        else "singchronized-backend"
+    )
 
 
 def installed_exe_path() -> Optional[str]:
@@ -50,14 +54,19 @@ def _asset_urls(asset_name: str) -> tuple:
         return zip_url, f"{zip_url}.sha256"
 
     api_url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-    req = urllib.request.Request(api_url, headers={"User-Agent": _USER_AGENT, "Accept": "application/vnd.github+json"})
+    req = urllib.request.Request(
+        api_url,
+        headers={"User-Agent": _USER_AGENT, "Accept": "application/vnd.github+json"},
+    )
     with urllib.request.urlopen(req, timeout=30) as resp:
         release = json.loads(resp.read())
 
     assets = {a["name"]: a["browser_download_url"] for a in release.get("assets", [])}
     sha_name = f"{asset_name}.sha256"
     if asset_name not in assets or sha_name not in assets:
-        raise FileNotFoundError(f"GPU pack asset '{asset_name}' not found in latest release '{release.get('tag_name')}'")
+        raise FileNotFoundError(
+            f"GPU pack asset '{asset_name}' not found in latest release '{release.get('tag_name')}'"
+        )
     return assets[asset_name], assets[sha_name]
 
 
@@ -112,7 +121,9 @@ def download_and_install(progress_callback=None):
         if progress_callback:
             progress_callback("verifying", 100)
         if actual_hash.lower() != expected_hash.lower():
-            raise ValueError(f"GPU pack checksum mismatch: expected {expected_hash}, got {actual_hash}")
+            raise ValueError(
+                f"GPU pack checksum mismatch: expected {expected_hash}, got {actual_hash}"
+            )
 
         if progress_callback:
             progress_callback("extracting", 0)
@@ -122,7 +133,9 @@ def download_and_install(progress_callback=None):
 
         extracted_backend = os.path.join(extract_dir, _BACKEND_FOLDER_NAME)
         if not os.path.isdir(extracted_backend):
-            raise FileNotFoundError(f"GPU pack zip did not contain a '{_BACKEND_FOLDER_NAME}' folder")
+            raise FileNotFoundError(
+                f"GPU pack zip did not contain a '{_BACKEND_FOLDER_NAME}' folder"
+            )
 
         os.makedirs(os.path.dirname(GPU_PACK_DIR), exist_ok=True)
         if os.path.isdir(GPU_PACK_DIR):
@@ -146,8 +159,12 @@ def uninstall():
 
 def run_install_async():
     """Fire-and-forget install, broadcasting progress over the websocket."""
+
     def _progress(stage, percent, error=None):
-        message = {"type": "gpu_pack_status", "data": {"stage": stage, "percent": percent}}
+        message = {
+            "type": "gpu_pack_status",
+            "data": {"stage": stage, "percent": percent},
+        }
         if error:
             message["data"]["error"] = error
         manager.broadcast_threadsafe(message)

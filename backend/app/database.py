@@ -43,8 +43,12 @@ def reset_stale_statuses():
     """Requeue tasks that were interrupted by a server shutdown."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE songs SET split_status = 'PENDING' WHERE split_status = 'PROCESSING'")
-    cursor.execute("UPDATE songs SET lyrics_status = 'PENDING' WHERE lyrics_status = 'PROCESSING'")
+    cursor.execute(
+        "UPDATE songs SET split_status = 'PENDING' WHERE split_status = 'PROCESSING'"
+    )
+    cursor.execute(
+        "UPDATE songs SET lyrics_status = 'PENDING' WHERE lyrics_status = 'PROCESSING'"
+    )
     conn.commit()
     conn.close()
 
@@ -52,10 +56,13 @@ def reset_stale_statuses():
 def add_song(title: str, artist: str, original_path: str):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO songs (title, artist, original_path, split_status, lyrics_status)
         VALUES (?, ?, ?, 'PENDING', 'PENDING')
-    """, (title, artist, original_path))
+    """,
+        (title, artist, original_path),
+    )
     conn.commit()
     song_id = cursor.lastrowid
     conn.close()
@@ -80,8 +87,14 @@ def get_song(song_id: int):
     return dict(row) if row else None
 
 
-def update_song_status(song_id: int, split_status: str = None, lyrics_status: str = None,
-                       split_error: str = None, lyrics_error: str = None, lyrics_model: str = None):
+def update_song_status(
+    song_id: int,
+    split_status: str = None,
+    lyrics_status: str = None,
+    split_error: str = None,
+    lyrics_error: str = None,
+    lyrics_model: str = None,
+):
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -98,14 +111,14 @@ def update_song_status(song_id: int, split_status: str = None, lyrics_status: st
     if split_error is not None:
         updates.append("split_error = ?")
         params.append(split_error)
-    elif split_status in ('PENDING', 'PROCESSING', 'COMPLETED'):
+    elif split_status in ("PENDING", "PROCESSING", "COMPLETED"):
         # clear error if retrying or successful
         updates.append("split_error = NULL")
 
     if lyrics_error is not None:
         updates.append("lyrics_error = ?")
         params.append(lyrics_error)
-    elif lyrics_status in ('PENDING', 'PROCESSING', 'COMPLETED'):
+    elif lyrics_status in ("PENDING", "PROCESSING", "COMPLETED"):
         updates.append("lyrics_error = NULL")
 
     if lyrics_model is not None:
@@ -114,14 +127,20 @@ def update_song_status(song_id: int, split_status: str = None, lyrics_status: st
 
     if updates:
         params.append(song_id)
-        cursor.execute(f"UPDATE songs SET {', '.join(updates)} WHERE id = ?", tuple(params))
+        cursor.execute(
+            f"UPDATE songs SET {', '.join(updates)} WHERE id = ?", tuple(params)
+        )
         conn.commit()
 
     conn.close()
 
 
-def update_song_paths(song_id: int, vocals_path: str = None, instrumental_path: str = None,
-                      lyrics_path: str = None):
+def update_song_paths(
+    song_id: int,
+    vocals_path: str = None,
+    instrumental_path: str = None,
+    lyrics_path: str = None,
+):
     conn = get_db_connection()
     cursor = conn.cursor()
     updates = []
@@ -138,7 +157,9 @@ def update_song_paths(song_id: int, vocals_path: str = None, instrumental_path: 
 
     if updates:
         params.append(song_id)
-        cursor.execute(f"UPDATE songs SET {', '.join(updates)} WHERE id = ?", tuple(params))
+        cursor.execute(
+            f"UPDATE songs SET {', '.join(updates)} WHERE id = ?", tuple(params)
+        )
         conn.commit()
     conn.close()
 

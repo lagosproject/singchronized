@@ -17,10 +17,9 @@ from .ws import manager
 async def _broadcast_playback_status():
     while True:
         if player.is_playing and manager.clients:
-            await manager.broadcast({
-                "type": "playback_status",
-                "data": player.get_status()
-            })
+            await manager.broadcast(
+                {"type": "playback_status", "data": player.get_status()}
+            )
         await asyncio.sleep(PLAYBACK_BROADCAST_INTERVAL)
 
 
@@ -57,13 +56,14 @@ def create_app() -> FastAPI:
     async def global_exception_handler(request, exc):
         import traceback
         import sys
+
         traceback.print_exception(type(exc), exc, exc.__traceback__, file=sys.stderr)
         return JSONResponse(
             status_code=500,
             content={
                 "detail": f"Internal Server Error: {str(exc)}",
-                "traceback": traceback.format_exc()
-            }
+                "traceback": traceback.format_exc(),
+            },
         )
 
     # Serve library static files (for thumbnails)
@@ -71,7 +71,9 @@ def create_app() -> FastAPI:
 
     # Serve static frontend files if built
     if os.path.exists(FRONTEND_DIST_DIR):
-        app.mount("/", StaticFiles(directory=FRONTEND_DIST_DIR, html=True), name="frontend")
+        app.mount(
+            "/", StaticFiles(directory=FRONTEND_DIST_DIR, html=True), name="frontend"
+        )
 
     return app
 

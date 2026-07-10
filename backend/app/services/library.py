@@ -20,10 +20,16 @@ def find_song_thumbnail(original_path: str) -> str:
 
 def with_media_flags(song: dict) -> dict:
     """Annotate a song row with whether its media files actually exist on disk."""
-    song["has_vocals"] = bool(song["vocals_path"] and os.path.exists(song["vocals_path"]))
-    song["has_instrumental"] = bool(song["instrumental_path"] and os.path.exists(song["instrumental_path"]))
-    song["has_lyrics"] = bool(song["lyrics_path"] and os.path.exists(song["lyrics_path"]))
-    
+    song["has_vocals"] = bool(
+        song["vocals_path"] and os.path.exists(song["vocals_path"])
+    )
+    song["has_instrumental"] = bool(
+        song["instrumental_path"] and os.path.exists(song["instrumental_path"])
+    )
+    song["has_lyrics"] = bool(
+        song["lyrics_path"] and os.path.exists(song["lyrics_path"])
+    )
+
     local_thumb = find_song_thumbnail(song["original_path"])
     if local_thumb:
         song["thumbnail_url"] = local_thumb
@@ -31,12 +37,15 @@ def with_media_flags(song: dict) -> dict:
         # Option B fallback: lazy-load image
         try:
             from .image_provider import get_default_image_provider
+
             provider = get_default_image_provider()
-            song["thumbnail_url"] = provider.get_song_image(song["title"], song["artist"])
+            song["thumbnail_url"] = provider.get_song_image(
+                song["title"], song["artist"]
+            )
         except Exception as e:
             print(f"Lazy thumbnail retrieval error: {e}")
             song["thumbnail_url"] = None
-            
+
     return song
 
 
@@ -44,9 +53,13 @@ def list_songs() -> list[dict]:
     return [with_media_flags(song) for song in database.get_all_songs()]
 
 
-def save_uploaded_song(title: str, artist: str, upload_filename: str, upload_file, thumbnail_file=None) -> int:
+def save_uploaded_song(
+    title: str, artist: str, upload_filename: str, upload_file, thumbnail_file=None
+) -> int:
     """Store an uploaded audio file in an 'Artist - Title' folder and register it."""
-    folder_name = f"{artist.strip()} - {title.strip()}".replace("/", "_").replace("\\", "_")
+    folder_name = f"{artist.strip()} - {title.strip()}".replace("/", "_").replace(
+        "\\", "_"
+    )
     song_folder = os.path.join(LIBRARY_DIR, folder_name)
     os.makedirs(song_folder, exist_ok=True)
 
@@ -69,9 +82,10 @@ def save_uploaded_song(title: str, artist: str, upload_filename: str, upload_fil
     if not has_uploaded_thumb:
         try:
             from .image_provider import get_default_image_provider
+
             provider = get_default_image_provider()
             provider.get_song_image(title, artist)
-            for part in artist.split(','):
+            for part in artist.split(","):
                 name = part.strip()
                 if name:
                     provider.get_artist_image(name)
