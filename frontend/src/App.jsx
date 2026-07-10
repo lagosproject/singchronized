@@ -26,6 +26,18 @@ function AppLayout() {
     };
   }, []);
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.error("Failed to enter fullscreen:", err);
+      });
+    } else {
+      document.exitFullscreen().catch(err => {
+        console.error("Failed to exit fullscreen:", err);
+      });
+    }
+  };
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'F11') {
@@ -38,18 +50,6 @@ function AppLayout() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(err => {
-        console.error("Failed to enter fullscreen:", err);
-      });
-    } else {
-      document.exitFullscreen().catch(err => {
-        console.error("Failed to exit fullscreen:", err);
-      });
-    }
-  };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>

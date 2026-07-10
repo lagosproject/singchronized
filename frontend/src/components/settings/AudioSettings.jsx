@@ -65,18 +65,14 @@ export default function AudioSettings() {
 
   const readySongs = library?.songs?.filter(s => s.status === 'synced' || s.status === 'ready') || [];
   const isSongPlaying = playback.playingSong !== null && playback.playback.is_playing;
-
-  useEffect(() => {
-    if (readySongs.length > 0 && !selectedSongId) {
-      setSelectedSongId(readySongs[0].id.toString());
-    }
-  }, [readySongs, selectedSongId]);
+  // Default to the first ready song until the user picks one explicitly.
+  const effectiveSongId = selectedSongId || (readySongs.length > 0 ? readySongs[0].id.toString() : '');
 
   const toggleSongCalibration = () => {
     if (isSongPlaying) {
       playback.stop();
-    } else if (selectedSongId) {
-      playback.play(Number(selectedSongId));
+    } else if (effectiveSongId) {
+      playback.play(Number(effectiveSongId));
     }
   };
 
@@ -231,7 +227,7 @@ export default function AudioSettings() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{t("selectSongForCalibration")}</label>
                     <select
-                      value={selectedSongId}
+                      value={effectiveSongId}
                       onChange={(e) => {
                         if (isSongPlaying) playback.stop();
                         setSelectedSongId(e.target.value);
