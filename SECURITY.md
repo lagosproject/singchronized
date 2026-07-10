@@ -15,7 +15,7 @@ We take the security of SingChronized seriously. If you find a security vulnerab
 
 Instead, please report vulnerabilities responsibly by following these steps:
 
-1. Send an email to **security@example.com** (replace with your secure email contact).
+1. Send an email to **lakescorporation@gmail.com**.
 2. Include a detailed description of the vulnerability, steps to reproduce, and any proof of concept (PoC) code or screenshots.
 3. Allow up to 48 hours for an acknowledgment of your report.
 

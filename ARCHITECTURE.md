@@ -323,7 +323,7 @@ PyInstaller singchronized-backend.spec
 
 cp -r dist/singchronized-backend frontend/src-tauri/resources/backend
 
-cd frontend && npm run tauri build
+cd frontend && pnpm tauri build
   → .deb + .AppImage (Linux)
   → NSIS .exe (Windows)
 ```

@@ -1,9 +1,9 @@
 # <img src="logo.svg" alt="SingChronized Logo" width="44" height="44" valign="middle" /> SingChronized 🎤🎶
 
-[![CI Build](https://github.com/lagosproject/Karaoke/actions/workflows/ci.yml/badge.svg)](https://github.com/lagosproject/Karaoke/actions/workflows/ci.yml)
-[![Tauri Release](https://github.com/lagosproject/Karaoke/actions/workflows/release.yml/badge.svg)](https://github.com/lagosproject/Karaoke/actions/workflows/release.yml)
+[![CI Build](https://github.com/lagosproject/singchronized/actions/workflows/ci.yml/badge.svg)](https://github.com/lagosproject/singchronized/actions/workflows/ci.yml)
+[![Tauri Release](https://github.com/lagosproject/singchronized/actions/workflows/release.yml/badge.svg)](https://github.com/lagosproject/singchronized/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![GitHub release](https://img.shields.io/github/v/release/lagosproject/Karaoke.svg)](https://github.com/lagosproject/Karaoke/releases)
+[![GitHub release](https://img.shields.io/github/v/release/lagosproject/singchronized.svg)](https://github.com/lagosproject/singchronized/releases)
 
 Sing karaoke with your own music library. SingChronized plays the **original vocals to the singer's headphones** 🎧 while the audience hears **only the instrumental** through the speakers 🎼 — with synced lyrics scrolling on screen in real time.
 
@@ -135,6 +135,7 @@ SingChronized is a desktop karaoke player designed for home parties and small ve
 Ensure you have the following installed on your machine:
 - **Python 3.12+**
 - **Node.js 22+**
+- **pnpm** ([install guide](https://pnpm.io/installation))
 - **Rust (stable toolchain)** (only required if building Tauri desktop packages)
 - **Git**
 
@@ -144,8 +145,8 @@ Ensure you have the following installed on your machine:
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/lagosproject/Karaoke.git
-   cd Karaoke
+   git clone https://github.com/lagosproject/singchronized.git
+   cd singchronized
    ```
 
 2. **Set up the Backend**:
@@ -158,10 +159,10 @@ Ensure you have the following installed on your machine:
    ```
 
 3. **Set up the Frontend**:
-   Install Node dependencies:
+   Install Node dependencies (requires [pnpm](https://pnpm.io/installation)):
    ```bash
    cd frontend
-   npm install
+   pnpm install
    cd ..
    ```
 
@@ -201,7 +202,7 @@ To run frontend and backend developers' hot-reload servers separately:
 2. **Start the Vite Frontend** (runs on port `5173`):
    ```bash
    cd frontend
-   npm run dev
+   pnpm dev
    ```
 
 3. **Develop Inside the Tauri Shell**:
@@ -209,7 +210,7 @@ To run frontend and backend developers' hot-reload servers separately:
    ```bash
    # Keep the API backend running, then run:
    cd frontend
-   npm run tauri dev
+   pnpm tauri dev
    ```
 
 ---
@@ -230,7 +231,7 @@ cp -r dist/singchronized-backend frontend/src-tauri/resources/backend
 
 # 3. Build the app + installers
 cd frontend
-npm run tauri build
+pnpm tauri build
 ```
 
 ---

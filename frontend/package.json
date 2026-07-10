@@ -3,6 +3,15 @@
   "private": true,
   "version": "2.0.4",
   "type": "module",
+  "packageManager": "pnpm@11.11.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lagosproject/singchronized.git"
+  },
+  "homepage": "https://github.com/lagosproject/singchronized",
+  "bugs": {
+    "url": "https://github.com/lagosproject/singchronized/issues"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

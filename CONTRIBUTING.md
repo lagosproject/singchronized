@@ -13,7 +13,7 @@ We follow a typical GitHub Flow workflow:
 1. **Fork the Repository**: Create a fork of the main repository on your GitHub account.
 2. **Clone Locally**: Clone your fork to your local environment.
    ```bash
-   git clone https://github.com/<your-username>/Karaoke.git
+   git clone https://github.com/<your-username>/singchronized.git
    ```
 3. **Create a Branch**: Create a descriptive branch starting with a category prefix:
    - `feature/` for new features (e.g., `feature/add-visualizer`)
@@ -35,6 +35,7 @@ We follow a typical GitHub Flow workflow:
 To set up the development environment, make sure you have:
 - **Python 3.12+**
 - **Node.js 22+**
+- **pnpm** ([install guide](https://pnpm.io/installation))
 - **Rust (stable)** (only required if building Tauri native app components)
 
 ### Backend Development
@@ -58,13 +59,13 @@ To set up the development environment, make sure you have:
    ```bash
    cd frontend
    ```
-2. Install dependencies:
+2. Install dependencies (requires [pnpm](https://pnpm.io/installation)):
    ```bash
-   npm install
+   pnpm install
    ```
 3. Start the Vite dev server:
    ```bash
-   npm run dev
+   pnpm dev
    ```
 
 ---
@@ -77,7 +78,7 @@ Before committing your changes, please run the following quality checks.
 We use ESLint for checking frontend TypeScript/JavaScript syntax and style issues.
 ```bash
 cd frontend
-npm run lint
+pnpm lint
 ```
 
 ### Backend Code Style

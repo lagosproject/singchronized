@@ -92,4 +92,8 @@ desktop.ini
 # 8. Log Files
 # -------------
 *.log
+
+# 9. Claude Code local state (worktrees, local permissions)
+# -----------------------------------------------------------
+.claude/
 logs/

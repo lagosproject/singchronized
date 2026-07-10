@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 rem Rebuilds the Python backend sidecar from scratch AND bundles it into the
-rem Tauri desktop app. `npm run tauri build` on its own does NOT rebuild the
+rem Tauri desktop app. `pnpm tauri build` on its own does NOT rebuild the
 rem Python side - it only bundles whatever is already sitting in
 rem frontend\src-tauri\resources\backend, which is very easy to leave stale
 rem (see README.md "Desktop Bundles" section for the manual steps this
@@ -40,7 +40,7 @@ if errorlevel 8 goto :error
 
 echo [build] 4/4 Building Tauri app (frontend + installer)...
 pushd frontend
-call npm run tauri build
+call pnpm tauri build --no-bundle
 if errorlevel 1 (
     popd
     goto :error

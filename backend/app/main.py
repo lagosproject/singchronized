@@ -39,10 +39,13 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="SingChronized Backend", lifespan=lifespan)
 
-    # Enable CORS for frontend development
+    # Restrict CORS to the origins this desktop app can actually be loaded
+    # from: the Vite dev server / same-origin production page (localhost or
+    # 127.0.0.1, any port), and the packaged Tauri webview, whose origin is
+    # http://tauri.localhost on Windows and tauri://localhost on Linux/macOS.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origin_regex=r"^(https?://(localhost|127\.0\.0\.1)(:\d+)?|https?://tauri\.localhost|tauri://localhost)$",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
