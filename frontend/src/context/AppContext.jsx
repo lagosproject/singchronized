@@ -37,7 +37,7 @@ export function AppProvider({ children }) {
       return;
     }
     try {
-      await api.play(id, devices.singerDevice, devices.audienceDevice);
+      await api.play(id, devices.singerDevice, devices.audienceDevice, devices.stereoSplit);
       library.fetchSongs();
       playback.setIsFullscreenLyrics(true);
 

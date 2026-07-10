@@ -16,15 +16,20 @@ def play_song(req: PlayRequest):
     song = get_song_or_404(req.song_id)
 
     # Fall back to the original mix for the singer if vocals were not split yet
-    vocals = song["vocals_path"] if (song["vocals_path"] and os.path.exists(song["vocals_path"])) else song["original_path"]
-    instrumental = song["instrumental_path"] if (song["instrumental_path"] and os.path.exists(song["instrumental_path"])) else None
+    vocals_ready = bool(song["vocals_path"] and os.path.exists(song["vocals_path"]))
+    instrumental_ready = bool(song["instrumental_path"] and os.path.exists(song["instrumental_path"]))
+    vocals = song["vocals_path"] if vocals_ready else song["original_path"]
+    instrumental = song["instrumental_path"] if instrumental_ready else None
 
     try:
         player.start_song(
             song_path=vocals,
             karaoke_path=instrumental,
             singer_device=req.singer_device,
-            audience_device=req.audience_device
+            audience_device=req.audience_device,
+            # Only honor the L/R split request when real stems exist -
+            # never split the raw mix against nothing.
+            stereo_split=req.stereo_split and vocals_ready and instrumental_ready
         )
         player.current_song_id = req.song_id
     except Exception as e:
@@ -79,6 +84,8 @@ def set_playback_volume(req: VolumeRequest):
 @router.post("/playback/delay")
 def set_playback_delay(req: DelayRequest):
     player.vocals_delay = req.delay
+    if player.is_playing:
+        player.seek(player.get_current_time())
     return {"message": "Delay updated", "vocals_delay": player.vocals_delay}
 
 

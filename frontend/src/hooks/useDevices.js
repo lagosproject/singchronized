@@ -40,6 +40,14 @@ export function useDevices() {
   const [audienceDevice, setAudienceDevice] = useState(null);
   const [gpuStatus, setGpuStatus] = useState({ has_nvidia_gpu: false, gpu_name: null, gpu_pack_installed: false, gpu_active: false });
   const [isCalibrating, setIsCalibrating] = useState(false);
+  // Opt-in: when only one output device is available, pan vocals to the
+  // left channel and instrumental to the right instead of dropping vocals.
+  const [stereoSplit, setStereoSplitState] = useState(() => localStorage.getItem('stereoSplitSingleOutput') === 'true');
+
+  const setStereoSplit = (enabled) => {
+    setStereoSplitState(enabled);
+    localStorage.setItem('stereoSplitSingleOutput', enabled ? 'true' : 'false');
+  };
 
   const applyDevices = useCallback((data) => {
     setDevices(data);
@@ -163,6 +171,8 @@ export function useDevices() {
     installGpuPack,
     uninstallGpuPack,
     isCalibrating,
+    stereoSplit,
+    setStereoSplit,
     playTestTone,
     selectSingerDevice,
     selectAudienceDevice,

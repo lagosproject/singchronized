@@ -45,10 +45,11 @@ export const api = {
   }),
 
   // Playback
-  play: (songId, singerDevice, audienceDevice) => postJson('/api/songs/play', {
+  play: (songId, singerDevice, audienceDevice, stereoSplit = false) => postJson('/api/songs/play', {
     song_id: songId,
     singer_device: singerDevice,
-    audience_device: audienceDevice
+    audience_device: audienceDevice,
+    stereo_split: stereoSplit
   }),
   pause: () => request('/api/songs/pause', { method: 'POST' }),
   resume: () => request('/api/songs/resume', { method: 'POST' }),

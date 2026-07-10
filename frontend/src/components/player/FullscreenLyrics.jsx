@@ -129,16 +129,16 @@ export default function FullscreenLyrics() {
       </div>
 
       {/* Central Synced Lyrics View - Centered and Overlay-safe */}
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        gap: '24px', 
-        textAlign: 'center', 
-        margin: 'auto',
-        alignSelf: 'center',
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px',
+        textAlign: 'center',
+        margin: '0 auto',
         width: '100%',
         maxWidth: '1000px',
-        maxHeight: '85vh', // Always takes up full available height
+        flex: 1,
+        minHeight: 0, // lets the flex item shrink/grow to fill the overlay instead of being sized by content
         justifyContent: 'center',
         overflow: 'hidden',
         boxSizing: 'border-box'

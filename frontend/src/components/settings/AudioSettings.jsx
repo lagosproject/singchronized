@@ -97,8 +97,17 @@ export default function AudioSettings() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '650px' }}>
         {!hasMultipleOutputs && (
-          <div className="glass-panel" style={{ padding: '14px 18px', borderRadius: '12px', background: 'rgba(251, 191, 36, 0.06)', border: '1px solid rgba(251, 191, 36, 0.35)', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            {t("onlyOneOutputNotice")}
+          <div className="glass-panel" style={{ padding: '14px 18px', borderRadius: '12px', background: 'rgba(251, 191, 36, 0.06)', border: '1px solid rgba(251, 191, 36, 0.35)', fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <span>{t("onlyOneOutputNotice")}</span>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', paddingTop: '10px', borderTop: '1px solid rgba(251, 191, 36, 0.2)' }}>
+              <input
+                type="checkbox"
+                checked={devices.stereoSplit}
+                onChange={(e) => devices.setStereoSplit(e.target.checked)}
+              />
+              <span style={{ fontWeight: 600 }}>{t("stereoSplitToggle")}</span>
+            </label>
+            <span style={{ fontSize: '0.78rem' }}>{t("stereoSplitToggleDesc")}</span>
           </div>
         )}
 
