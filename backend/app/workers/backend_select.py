@@ -7,10 +7,15 @@ from ..services import gpu_pack
 
 def resolve_backend_command(subcommand: str) -> list:
     """Pick which backend executable should run `subcommand` ("demucs"/"transcribe"):
-    the downloaded GPU pack if installed, else the bundled/dev CPU backend."""
-    gpu_exe = gpu_pack.installed_exe_path()
-    if gpu_exe:
-        return [gpu_exe, subcommand]
+    the GPU-pack venv if installed, else the bundled/dev CPU backend."""
+    gpu_python = gpu_pack.installed_python_path()
+    if gpu_python:
+        if subcommand == "demucs":
+            # demucs is pip-installed straight into the GPU venv's site-packages.
+            return [gpu_python, "-m", "demucs"]
+        # transcribe needs our own dispatch code, not a pip package — run it
+        # against the bundled plain-source copy (see resolve_backend_cwd()).
+        return [gpu_python, "-m", "backend.server", subcommand]
 
     if IS_FROZEN:
         # Packaged build: re-invoke our own executable, whose entry point
@@ -42,3 +47,15 @@ def resolve_backend_command(subcommand: str) -> list:
     # `backend.app...` absolute imports resolve — running the script by path
     # doesn't put PROJECT_ROOT on sys.path and fails with ModuleNotFoundError.
     return [sys.executable, "-m", "backend.server", subcommand]
+
+
+def resolve_backend_cwd() -> str:
+    """cwd for the command from resolve_backend_command(): needed by any
+    `-m backend.server` invocation so its `backend.app...` imports resolve via
+    sys.path (harmless no-op for the frozen-exe and `-m demucs` branches,
+    neither of which relies on cwd)."""
+    if gpu_pack.is_installed():
+        gpu_src = gpu_pack.backend_src_dir()
+        if gpu_src:
+            return gpu_src
+    return PROJECT_ROOT

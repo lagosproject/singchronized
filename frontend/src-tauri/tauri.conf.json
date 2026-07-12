@@ -38,7 +38,9 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "resources/backend": "backend"
+      "resources/backend": "backend",
+      "resources/uv": "uv",
+      "resources/backend-src": "backend-src"
     },
     "shortDescription": "AI-powered karaoke player",
     "longDescription": "Karaoke app with AI vocal separation (Demucs) and synced lyric transcription (Whisper). Routes vocals to headphones and instrumental to speakers.",
