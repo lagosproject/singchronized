@@ -2,6 +2,10 @@
 # SingChronized Git Ignore Configuration
 # ==========================================
 
+# 0. Local-only dev scripts (not for public repo)
+# ------------------------------------------
+build_release.bat
+
 # 1. Environment & Local Secrets (CRITICAL)
 # ------------------------------------------
 .env
