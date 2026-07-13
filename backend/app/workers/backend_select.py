@@ -10,11 +10,12 @@ def resolve_backend_command(subcommand: str) -> list:
     the GPU-pack venv if installed, else the bundled/dev CPU backend."""
     gpu_python = gpu_pack.installed_python_path()
     if gpu_python:
-        if subcommand == "demucs":
-            # demucs is pip-installed straight into the GPU venv's site-packages.
-            return [gpu_python, "-m", "demucs"]
-        # transcribe needs our own dispatch code, not a pip package — run it
-        # against the bundled plain-source copy (see resolve_backend_cwd()).
+        # Route through backend.server's dispatch rather than `-m demucs`
+        # directly: server.py monkeypatches torchaudio.save to use soundfile,
+        # which the GPU venv also needs — torchaudio's default save path
+        # requires torchcodec, which isn't (and doesn't need to be) installed
+        # there. Run against the bundled plain-source copy (see
+        # resolve_backend_cwd()).
         return [gpu_python, "-m", "backend.server", subcommand]
 
     if IS_FROZEN:
