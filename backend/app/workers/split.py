@@ -3,7 +3,7 @@ import shutil
 import subprocess
 
 from .. import database
-from .backend_select import resolve_backend_command
+from .backend_select import resolve_backend_command, resolve_backend_cwd
 from .subprocess_utils import stream_progress
 
 try:
@@ -62,6 +62,7 @@ def run_demucs_separation(
             text=True,
             bufsize=1,
             env=env,
+            cwd=resolve_backend_cwd(),  # `-m backend.server` needs this on sys.path to resolve
         )
 
         stream_progress(process, f"Demucs Song {song_id}", progress_callback)

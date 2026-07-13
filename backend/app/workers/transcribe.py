@@ -1,8 +1,7 @@
 import subprocess
 
 from .. import database
-from ..config import PROJECT_ROOT
-from .backend_select import resolve_backend_command
+from .backend_select import resolve_backend_command, resolve_backend_cwd
 from .subprocess_utils import stream_progress
 
 
@@ -34,7 +33,7 @@ def run_whisper_transcription(
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            cwd=PROJECT_ROOT,  # dev-mode fallback runs `-m backend.server`, which resolves via cwd
+            cwd=resolve_backend_cwd(),  # `-m backend.server` needs this on sys.path to resolve
         )
 
         stream_progress(process, f"Whisper Song {song_id}", progress_callback)

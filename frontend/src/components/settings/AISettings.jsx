@@ -15,7 +15,8 @@ export default function AISettings() {
     }
   }, [gpuPackProgress, refreshGpuStatus]);
 
-  const isInstalling = gpuPackProgress && ['downloading', 'verifying', 'extracting'].includes(gpuPackProgress.stage);
+  const INSTALL_STAGES = ['provisioning-python', 'installing-torch', 'installing-dependencies'];
+  const isInstalling = gpuPackProgress && INSTALL_STAGES.includes(gpuPackProgress.stage);
 
   return (
     <>
@@ -134,14 +135,14 @@ export default function AISettings() {
             {gpuStatus.has_nvidia_gpu && isInstalling && (
               <div style={{ marginTop: '10px' }}>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                  {gpuPackProgress.stage === 'downloading' && t("gpuPackDownloading", { percent: gpuPackProgress.percent })}
-                  {gpuPackProgress.stage === 'verifying' && t("gpuPackVerifying")}
-                  {gpuPackProgress.stage === 'extracting' && t("gpuPackExtracting")}
+                  {gpuPackProgress.stage === 'provisioning-python' && t("gpuPackProvisioningPython")}
+                  {gpuPackProgress.stage === 'installing-torch' && t("gpuPackInstallingTorch")}
+                  {gpuPackProgress.stage === 'installing-dependencies' && t("gpuPackInstallingDependencies")}
                 </div>
                 <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
                   <div style={{
                     height: '100%',
-                    width: `${gpuPackProgress.stage === 'downloading' ? gpuPackProgress.percent : 100}%`,
+                    width: `${((INSTALL_STAGES.indexOf(gpuPackProgress.stage) + 1) / INSTALL_STAGES.length) * 100}%`,
                     background: 'var(--primary)',
                     transition: 'width 0.2s ease'
                   }} />
